@@ -355,6 +355,7 @@ room.sendDebug = function(text) {
 }
 
 window.onerror = function(err) {
+    console.log("Window Error:");
     console.log(err);
     console.log(err.toString());
 }
@@ -703,6 +704,48 @@ room.onPlayerChat = function(player, message) {
         };
         room.sendAnnouncement(JSON.stringify(mapData), targetId=player.id);
         return false;
+    }
+    if (message.indexOf("$team_top") === 0) {
+        // Total time of match, in seconds.
+        let totalTOP = 0;
+        // Total time of possession for each team, in seconds.
+        let teamTOPMap = {
+            [TEAMS.Red]: 0,
+            [TEAMS.Blue]: 0,
+        };
+        // Total time of posession for each player on each team, in seconds.
+        let playerTOPMap = {
+            [TEAMS.Red]: {},
+            [TEAMS.Blue]: {},
+        };
+        const current = [
+            ...possessions,
+            {
+                start: possessionStartTime,
+                end: getTime(room),
+                player: lastTouchPlayer ? lastTouchPlayer.id : null,
+                team: lastTouchPlayer ? lastTouchPlayer.team : null,
+            },
+        ];
+        current.forEach((drive) => {
+            const dur = drive.end - drive.start;
+            totalTOP += dur;
+            if (drive.team && drive.player) {
+                teamTOPMap[drive.team] += dur;
+                if ((drive.player in playerTOPMap)) {
+                    playerTOPMap[drive.team][drive.player] = 0;
+                }
+                playerTOPMap[drive.team][drive.player] += dur;   
+            }
+        });
+        const redTOPPct = Math.round(100 * (teamTOPMap[TEAMS.Red] / totalTOP));
+        const blueTOPPct = Math.round(100 * (teamTOPMap[TEAMS.Blue] / totalTOP));
+        const msg = [
+            `Time of Possession:`,
+            `Red: ${teamTOPMap[TEAMS.Red].toFixed(0)} secs (${redTOPPct}%)`,
+            `Blue: ${teamTOPMap[TEAMS.Blue].toFixed(0)} secs (${blueTOPPct}%)`,
+        ];
+        room.sendAnnouncement(msg.join("\n"), targetId=player.id);
     }
     return true;
 }
