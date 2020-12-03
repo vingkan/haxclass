@@ -1,0 +1,17 @@
+{
+  "name": "haxball-class-server",
+  "version": "1.0.0",
+  "description": "Server to run Haxball admin bot for class.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "vingkan",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "firebase-admin": "^9.4.1",
+    "puppeteer": "^1.7.0"
+  }
+}

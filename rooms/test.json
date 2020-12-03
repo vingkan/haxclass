@@ -1,0 +1,20 @@
+{
+	"roomName": "HaxClassTest",
+	"maxPlayers": 10,
+	"playerName": "HaxBot",
+	"noPlayer": true,
+	"public": true,
+	"password": "agile",
+
+	"saveToFirebase": true,
+	"saveToLocal": true,
+	"showDebugMessages": true,
+
+	"scoreLimit": 3,
+	"timeLimit": 3,
+	"teamsLock": true,
+	"customStadium": "NAFL Official Map v1",
+
+	"colorsRed": "/colors red 60 FFFFFF EB1F10 BA0000 821010",
+	"colorsBlue": "/colors blue 60 FFFFFF 0080FF 0064BA 005282"
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HaxClass</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+    <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-database.js"></script>
+    <style type="text/css">
+        
+        body {
+            font-family: monospace;
+        }
+
+    </style>
+</head>
+<body>
+    <pre></pre>
+    <script type="text/javascript" src="hub.js"></script>
+    <script type="text/javascript">
+
+        // Client keys that allow read-only access.
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4kjMsnaUhaGYL8tCS4FTj2UtGNWYKV14",
+            authDomain: "haxclass.firebaseapp.com",
+            databaseURL: "https://haxclass.firebaseio.com",
+            projectId: "haxclass",
+            storageBucket: "haxclass.appspot.com",
+            messagingSenderId: "425802086346",
+            appId: "1:425802086346:web:595b8d5f7058079a3e0133"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const url = document.location.href;
+        const mid = url.indexOf("m=") > -1 ? url.split("m=")[1].split("&")[0] : null;
+        const useLocal = url.indexOf("l=true") > -1;
+
+        if (mid) {
+            console.log(`Getting match data from ${useLocal ? "local records" : "Firebase"}.`);
+            const promise = useLocal ? getMatchFromLocal(mid) : getMatchFromFirebase(mid, db);
+            promise.then((match) => {
+                const pre = document.querySelector("pre");
+                pre.innerText = JSON.stringify(match, null, 2);
+            }).catch((err) => {
+                console.log(`Failed to get data for match ID: ${mid}`);
+                console.error(err);
+            });
+        } else {
+            console.log("No match ID provided.");
+        }
+
+    </script>
+</body>
+</html>
