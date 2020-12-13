@@ -32,7 +32,7 @@ const TOUCH_RADIUS = 0.01;
 const PLAYER_RADIUS = 15;
 const POSITION_PRECISION = 0;
 const TIME_PRECISION = 1;
-const POSITION_SAVE_COOLDOWN = 0.5;
+const POSITION_SAVE_COOLDOWN = 0.25;
 const SMALL_TIME_STEP = 0.01;
 const GOALPOST_ZERO = 0.1;
 const GOAL_AREA_RADIUS = 1.5;
@@ -375,6 +375,8 @@ let possessionStartTime;
 
 let lastPositionSaveTime;
 
+let matchPlayersMap;
+
 room.onGameStart = function(byPlayer) {
     goals = [];
     kicks = [];
@@ -397,7 +399,7 @@ room.onGameStart = function(byPlayer) {
         console.log(`Failed to find ball radius for stadium: ${currentStadiumName}`);
         console.log(err.toString());
     }
-    room.sendAnnouncement(`Changed ball radius to ${BALL_RADIUS} for stadium: ${currentStadiumName}`);
+    room.sendDebug(`Changed ball radius to ${BALL_RADIUS} for stadium: ${currentStadiumName}`);
 
     prevKickPlayer = null;
     lastKickPlayer = null;
@@ -408,6 +410,9 @@ room.onGameStart = function(byPlayer) {
 
     // Start negative on first run to ensure initial positions are saved.
     lastPositionSaveTime = -1.05 * POSITION_SAVE_COOLDOWN;
+
+    // Save all players that were part of the match.
+    matchPlayersMap = {};
 }
 
 room.onGameStop = function(byPlayer) {
@@ -429,8 +434,9 @@ room.onTeamVictory = async function(score) {
     if (drive.end - drive.start > SMALL_TIME_STEP) {
         possessions.push(drive);
     }
-    // Save game record
-    const finalPlayers = room.getPlayerList().map(flattenPlayer).map((p) => {
+    // Save game record.
+    const finalPlayers = Object.keys(matchPlayersMap).map((k) => {
+        const p = matchPlayersMap[k];
         const { id, name, team } = p;
         return { id, name, team };
     });
@@ -552,6 +558,9 @@ room.onGameTick = function() {
     for (let i = 0; i < players.length; i++) {
         const player = players[i];
         if (player.position !== null) {
+            // Save player in the map of match players, in case they leave or are subbed.
+            matchPlayersMap[player.id] = player;
+            // Check if player is touching the ball.
             const p = player.position;
             const d = Math.sqrt(
                 Math.pow(b.x - p.x, 2) + Math.pow(b.y - p.y, 2)

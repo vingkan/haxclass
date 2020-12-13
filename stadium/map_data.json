@@ -94,5 +94,37 @@
     "ball": {
       "radius": 10
     }
+  },
+  {
+    "stadium": "Beach Volleyball from HaxMaps",
+    "goalposts": {
+      "1": null,
+      "2": null
+    },
+    "bounds": {
+      "minX": -420,
+      "maxX": 420,
+      "minY": -140,
+      "maxY": 115
+    },
+    "ball": {
+      "radius": 10
+    }
+  },
+  {
+    "stadium": "Volleyball 3D 1.5 (by Osprey)",
+    "goalposts": {
+      "1": null,
+      "2": null
+    },
+    "bounds": {
+      "minX": -500,
+      "maxX": 500,
+      "minY": -30,
+      "maxY": 200
+    },
+    "ball": {
+      "radius": 7.25
+    }
   }
 ]

@@ -1,7 +1,8 @@
 const TEAMS = { 1: "red", 2: "blue", "1": "red", "2": "blue", Red: 1, Blue: 2 };
 const PLAYER_RADIUS = 15;
 const GOAL_AREA_RADIUS = 1.5;
-const POST_GOAL_WAIT_TICKS = 100;
+const REPLAY_TICK = 25;
+const POST_GOAL_WAIT_TICKS = 50;
 
 function inflate(packed) {
     const playerMap = packed.players.reduce((agg, player) => {
@@ -242,6 +243,10 @@ function drawBallAndPlayers(svgEl, toX, toY, stadium, match) {
     let discElMap = {};
     let textElMap = {};
     for (let i = 0; i <= match.players.length; i++) {
+        // If we loop back around to the ball, we've drawn all the initial players.
+        if ("ball" in discElMap) {
+            break;
+        }
         if (match.positions[i].type === "ball") {
             const ball = match.positions[i];
             const ballEl = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -272,6 +277,34 @@ function drawBallAndPlayers(svgEl, toX, toY, stadium, match) {
             svgEl.appendChild(textEl);
             discElMap[pos.playerId] = playerEl;
             textElMap[pos.playerId] = textEl;
+        }
+    }
+    // Draw players that were not in at the start of the game.
+    const { minX, maxX, minY } = stadium.bounds;
+    for (let b = 0; b < match.players.length; b++) {
+        const player = match.players[b];
+        if (!(player.id in discElMap)) {
+            const cornerX = player.team === TEAMS.Red ? minX : maxX;
+            const cornerY = minY;
+            const playerEl = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            playerEl.setAttribute("cx", toX(cornerX));
+            playerEl.setAttribute("cy", toY(cornerY));
+            playerEl.setAttribute("r", PLAYER_RADIUS);
+            playerEl.setAttribute("fill", player.team);
+            const textEl = makeSvgEl("text", {
+                x: toX(cornerX),
+                y: toY(cornerY),
+                dy: (7 / 3) * PLAYER_RADIUS,
+                fill: "white",
+                "text-anchor": "middle",
+                "font-family": "sans-serif",
+                "font-size": (4 / 3) * PLAYER_RADIUS,
+            });
+            textEl.innerHTML = player.name;
+            svgEl.appendChild(playerEl);
+            svgEl.appendChild(textEl);
+            discElMap[player.id] = playerEl;
+            textElMap[player.id] = textEl;
         }
     }
     return { discElMap, textElMap };
@@ -403,6 +436,8 @@ function playMatch(
 
 async function mainReplay(match) {
 
+    console.log(match)
+
     // Load stadium data.
     const stadiumRes = await fetch(`../stadium/map_data.json`).catch(console.error);
     const stadiumDataMap = parseStadiumDataMap(await stadiumRes.json());
@@ -419,7 +454,12 @@ async function mainReplay(match) {
     const toY = (y) => {
         return y - stadium.bounds.minY;
     };
-    drawFieldAndGoals(svgEl, toX, toY, stadium);
+    try {
+        drawFieldAndGoals(svgEl, toX, toY, stadium);
+    } catch (err) {
+        console.log("Error while drawing field and goals:");
+        console.log(err);
+    }
     const { discElMap, textElMap } = drawBallAndPlayers(svgEl, toX, toY, stadium, match);
 
     // Set up player.
@@ -430,10 +470,12 @@ async function mainReplay(match) {
     const fullLogEl = document.getElementById("full-log");
     const playBtn = document.getElementById("play");
     const sliderEl = document.getElementById("slider");
+    const stadiumNameEl = document.getElementById("stadium-name");
     slider.setAttribute("min", 0);
     slider.setAttribute("max", Math.ceil(match.score.time));
     slider.setAttribute("step", 1);
     slider.setAttribute("value", 0);
+    stadiumNameEl.innerText = match.stadium;
     const logMsg = (clock, m) => {
         if (clock) {
             logClockEl.innerText = clock;
@@ -468,7 +510,7 @@ async function mainReplay(match) {
             match, [ ...moments ], stadium,
             discElMap, textElMap,
             toX, toY, setScore, setClock, logMsg, clearLog,
-            startTime=time, tick=25
+            startTime=time, tick=REPLAY_TICK
         );
     }
 
