@@ -31,3 +31,6 @@ The room config file lets you customize the room.
 ## Hub
 
 Go to `/hub/replay.html?m=YOUR_MATCH_ID` to view a replay.
+
+## Data
+
