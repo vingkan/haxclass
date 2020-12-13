@@ -88,7 +88,6 @@ function saveToLocalSync(r, id) {
     console.log(`Possessions Size: ${jsonSize(r.possessions)} bytes`);
     console.log(`Positions Size: ${jsonSize(r.positions)} bytes`);
     console.log(`Wrote local record to: ${filename}`);
-    console.log("\n");
 }
 
 async function start() {
@@ -126,7 +125,7 @@ async function start() {
             return false;
         }
     });
-    await page.exposeFunction("saveGameRecord", (r, s) => {
+    await page.exposeFunction("saveGameRecord", (r, s, kicks) => {
         return new Promise((resolve, reject) => {
             console.log("\n");
             console.log(`Score: ${s.scoreRed}-${s.scoreBlue}`);
@@ -148,16 +147,45 @@ async function start() {
                         saveToLocalSync(r, id);
                     }
                     // Finish saving summary
-                    db.ref(`summary/${id}`).set(summary).then((done) => {
-                        resolve(`Match ID: ${id}`);
+                    db.ref(`summary/${id}`).set(summary).then(() => {
+                        const kickPromises = kicks.map((kick) => {
+                            const kickData = {
+                                ...kick,
+                                saved,
+                                match: id,
+                            };
+                            return new Promise((resolve, reject) => {
+                                db.ref(`kick`).push(kickData).then(() => {
+                                    resolve({ success: true });
+                                }).catch((err) => {
+                                    resolve({ success: false });
+                                });
+                            });
+                        });
+                        Promise.all(kickPromises).then((kickResults) => {
+                            let successCount = kickResults.reduce((agg, val) => {
+                                return agg + (val.success ? 1 : 0);
+                            }, 0);
+                            console.log(`Saved ${successCount} / ${kickResults.length} kicks.`);
+                        }).then(() => {
+                            console.log("\n");
+                            resolve(`Match ID: ${id}`);
+                        }).catch((err) => {
+                            console.log("Error while saving kicks.");
+                            console.log(err);
+                            console.log("\n");
+                            resolve(`Match ID: ${id}`);
+                        });
                     }).catch((err) => {
                         console.log("Failed to save match summary:");
                         console.log(err);
+                        console.log("\n");
                         resolve("Failed to save match summary.");
                     });
                 }).catch((err) => {
                     console.log("Failed to save match data and summary:");
                     console.log(err);
+                    console.log("\n");
                     resolve("Failed to save match data and summary.");
                 });
             } else if (roomConfig.saveToLocal) {

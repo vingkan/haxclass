@@ -286,6 +286,41 @@ function saveKick(kick) {
     }
 }
 
+function saveAllTimeKick(kick, stadium) {
+    let kickData = {
+        stadium,
+        time: roundTime(kick.time),
+        type: kick.type,
+        fromName: kick.from.name,
+        fromX: kick.from.x,
+        fromY: kick.from.y,
+        fromTeam: kick.from.team === TEAMS.Red ? "red" : "blue",
+        scoreRed: kick.score.red,
+        scoreBlue: kick.score.blue,
+        scoreLimit: kick.score.scoreLimit,
+        timeLimit: kick.score.timeLimit,
+    };
+    if (kick.to) {
+        kickData = {
+            ...kickData,
+            toName: kick.to.name,
+            toX: kick.to.x,
+            toY: kick.to.y,
+            toTeam: kick.to.team === TEAMS.Red ? "red" : "blue",
+        };
+    }
+    if (kick.assist) {
+        kickData = {
+            ...kickData,
+            assistName: kick.assist.name,
+            assistX: kick.assist.x,
+            assistY: kick.assist.y,
+            assistTeam: kick.assist.team === TEAMS.Red ? "red" : "blue",
+        };
+    }
+    return kickData;
+}
+
 function leftpad(val) {
     if (val < 10) {
         return `0${val}`;
@@ -457,7 +492,8 @@ room.onTeamVictory = async function(score) {
         possessions: possessions.map(saveDrive),
         positions: positions.map(savePosition),
     };
-    const message = await window.saveGameRecord(record, summary);
+    const allTimeKicks = kicks.map((k) => saveAllTimeKick(k, currentStadiumName));
+    const message = await window.saveGameRecord(record, summary, allTimeKicks);
     room.sendAnnouncement(message);
     // const expRecord = {
     //     score: finalScore,
@@ -490,6 +526,7 @@ room.onPlayerLeave = function(player) {
 
 function updateTouched(newTouchPlayer, fromKick) {
     const time = getTime(room);
+    const score = room.getScores();
     if (!lastTouchPlayer) {
         lastTouchPlayer = newTouchPlayer;
         lastTouchSource = TOUCH_SOURCE.Kick;
@@ -524,6 +561,7 @@ function updateTouched(newTouchPlayer, fromKick) {
                     type: kickType,
                     from: flattenPlayer(lastTouchPlayer),
                     to: flattenPlayer(newTouchPlayer),
+                    score,
                 };
                 kicks.push(kick);
                 if (kickType === KICK_TYPE.Save) {
@@ -553,7 +591,6 @@ room.onGameTick = function() {
     // Save player positions
     const players = room.getPlayerList();
     const b = room.getBallPosition();
-    const playersWithBallMap = {};
     let newTouchPlayer = null;
     for (let i = 0; i < players.length; i++) {
         const player = players[i];
@@ -654,6 +691,7 @@ room.onTeamGoal = function(team) {
                 type: KICK_TYPE.Error,
                 from: tailKick.from,
                 to: tailKick.to,
+                score,
             };
             kicks.push(errorKick);
             room.sendDebug(`Save changed to error by ${tailKick.to.name}`);
@@ -667,6 +705,8 @@ room.onTeamGoal = function(team) {
         type: isOwn ? KICK_TYPE.OwnGoal : KICK_TYPE.Goal,
         from: flattenPlayer(scorer),
         to: null,
+        assist: flattenPlayer(assist),
+        score,
     };
     kicks.push(kick);
     // Record and update team possession
