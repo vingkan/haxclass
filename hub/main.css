@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+html {
+    background: #f0feff;
+    font-family: 'Roboto', sans-serif;
+}
+
+.Main__Container {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.Main__Limit {
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.Main__Limit div {
+    display: inline-block;
+}
+
+.Main__Limit div:nth-child(2) {
+    float: right;
+}
+
+.Main__Limit input {
+    box-sizing: border-box;
+    margin-left: 10px;
+    width: 60px;
+}
+
+.Button__Round {
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 15px;
+    height: 30px;
+    line-height: 20px;
+    color: black;
+}
+
+.Button__Round:hover {
+    cursor: pointer;
+    opacity: 0.75;
+}
+
+.Main__ShowMore {
+    text-align: center;
+    font-size: 14px;
+}
+
+.Main__ShowMore button {
+    background: #b5b5b5;    
+}
+
+.Summary__Record {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
+    background: white;
+    margin: 10px auto;
+    padding: 5px;
+    font-size: 14px;
+}
+
+.Summary__Record:hover {
+    background: white;
+}
+
+.Summary__Half {
+    display: inline-block;
+}
+
+.Summary__Half div, .Summary__Half a {
+    display: inline-block;
+    margin: 5px;
+}
+
+.Summary__Right {
+    float: right;
+    text-align: right;
+}
+
+.Summary__Right div {
+    display: block;
+}
+
+.Summary__Score, .Summary__Duration, .Summary__Date {
+    font-size: 18px;
+}
+
+.Summary__Score, .Summary__Date {
+    font-weight: bold;
+}
+
+.Summary__ID {
+    background: #f59d78;
+}
+
+.Summary__Replay {
+    background: #58eda5;
+}
+
+.Summary__JSON {
+    background: #b678f5;
+}
+
+.Summary__CSV {
+    background: #63bee6;
+}
