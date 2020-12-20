@@ -90,12 +90,29 @@ function saveToLocalSync(r, id) {
     console.log(`Wrote local record to: ${filename}`);
 }
 
+async function startProfile(page, savePrevious=false) {
+    if (savePrevious) {
+        const path = `./traces/${Date.now()}.json`;
+        const traceData = await page.tracing.stop();
+        fs.writeFileSync(path, traceData);
+        console.log(`Wrote trace to: ${path}`);
+    }
+    await page.tracing.start();
+}
+
 async function start() {
     // Start headless browser session
     const browser = await puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox"]
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--force-fieldtrials=*BackgroundTracing/default/"
+        ]
     });
     const page = await browser.newPage();
+    if (roomConfig.collectTrace) {
+        await startProfile(page, savePrevious=false);    
+    }
     await setWindowVariables(page);
     await page.goto("https://www.haxball.com/headless", {
         waitUntil: "networkidle2"
@@ -167,10 +184,16 @@ async function start() {
                                 return agg + (val.success ? 1 : 0);
                             }, 0);
                             console.log(`Saved ${successCount} / ${kickResults.length} kicks.`);
-                        }).then(() => {
+                        }).then(async () => {
+                            if (roomConfig.collectTrace) {
+                                await startProfile(page, savePrevious=true);
+                            }
                             console.log("\n");
                             resolve(`Match ID: ${id}`);
-                        }).catch((err) => {
+                        }).catch(async (err) => {
+                            if (roomConfig.collectTrace) {
+                                await startProfile(page, savePrevious=true);
+                            }
                             console.log("Error while saving kicks.");
                             console.log(err);
                             console.log("\n");

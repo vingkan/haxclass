@@ -106,3 +106,4 @@ dist
 # Project-specific files
 records/
 secret/
+traces/

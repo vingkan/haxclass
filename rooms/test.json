@@ -9,6 +9,7 @@
 	"saveToFirebase": true,
 	"saveToLocal": true,
 	"showDebugMessages": true,
+	"collectTrace": true,
 
 	"scoreLimit": 3,
 	"timeLimit": 3,
