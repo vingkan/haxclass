@@ -43,16 +43,33 @@ console.log(`Running Script: ${script}`);
 if (script === "delete") {
     // Paste match IDs to delete, separated by newlines.
     const toDelete = `
-
-    `.split("\n").filter(l => l.length > 0);
+    
+    `.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    if (toDelete.length < 1) {
+        console.log("No matches specified for deletion.");
+        process.exit(0);
+    }
 
     const promises = [];
     for (let i = 0; i < toDelete.length; i++) {
         const mid = toDelete[i];
         const mp = db.ref(`match/${mid}`).remove();
         const sp = db.ref(`summary/${mid}`).remove();
+        const kp = new Promise((resolve, reject) => {
+            const kickRefs = db.ref("kick").orderByChild("match").equalTo(mid);
+            kickRefs.once("value", (snap) => {
+                let subPromises = [];
+                snap.forEach((data) => {
+                    const skp = db.ref(`kick/${data.key}`).remove();
+                    subPromises.push(skp);
+                });
+                console.log(`Deleting ${subPromises.length} kicks for match: ${mid}`);
+                Promise.all(subPromises).then(resolve).catch(reject);
+            });
+        });
         promises.push(mp);
         promises.push(sp);
+        promises.push(kp);
     }
     Promise.all(promises).then((done) => {
         console.log(`Successfully deleted ${promises.length} records.`);
