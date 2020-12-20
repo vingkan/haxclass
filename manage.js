@@ -63,3 +63,17 @@ if (script === "delete") {
         process.exit(0);
     });
 }
+
+if (script === "download_summaries") {
+    const limit = 20;
+    const ref = db.ref("summary");
+    const queryRef = ref.orderByChild("saved").limitToLast(limit);
+    const listener = queryRef.once("value", (snap) => {
+        const val = snap.val() || {};
+        const testData = JSON.stringify(val, null, 2);
+        const n = Object.keys(val).length;
+        fs.writeFileSync("./hub/summary_test_data.json", testData);
+        console.log(`Successfully downloaded ${n} summaries.`);
+        process.exit(0);
+    });
+}
