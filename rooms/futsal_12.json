@@ -1,12 +1,12 @@
 {
     "roomName": "Futsal (1v1, 2v2)",
-    "maxPlayers": 10,
+    "maxPlayers": 20,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
 
     "saveToFirebase": true,
-    "saveToLocal": true,
+    "saveToLocal": false,
     "showDebugMessages": false,
     "collectTrace": false,
 

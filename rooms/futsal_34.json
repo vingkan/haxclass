@@ -1,12 +1,12 @@
 {
     "roomName": "Futsal (3v3, 4v4)",
-    "maxPlayers": 12,
+    "maxPlayers": 20,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
 
     "saveToFirebase": true,
-    "saveToLocal": true,
+    "saveToLocal": false,
     "showDebugMessages": false,
     "collectTrace": false,
 
