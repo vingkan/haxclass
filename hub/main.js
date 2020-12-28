@@ -107,12 +107,6 @@ class Summary extends React.Component {
         const nPlayers = s.players.split(", ").length;
         const pluralPlayers = nPlayers === 1 ? "Player" : "Players";
         const playerString = `${nPlayers} ${pluralPlayers}: ${s.players}`;
-        let xgButton;
-        if (this.props.hasHaxML) {
-            xgButton = <a className="Summary__XG Button__Round" target="_blank" href={urlXG}>XG</a>;
-        } else {
-            xgButton = <span className="Summary__XG Button__Round Button__Fake">XG</span>;
-        }
         return (
             <div className="Summary__Record">
                 <div className="Summary__Half">
@@ -123,7 +117,7 @@ class Summary extends React.Component {
                     <a className="Summary__Replay Button__Round" target="_blank" href={urlReplay}>Replay</a>
                     <a className="Summary__JSON Button__Round" target="_blank" href={urlJSON}>JSON</a>
                     <a className="Summary__CSV Button__Round" target="_blank" href={urlCSV}>CSV</a>
-                    {xgButton}
+                    <a className="Summary__XG Button__Round" target="_blank" href={urlXG}>XG</a>
                 </div>
                 <div className="Summary__Half Summary__Right">
                     <div className="Summary__Date">{getDateString(s.saved)}</div>
@@ -156,7 +150,6 @@ class RecentMatches extends React.Component {
                                 key={s.id}
                                 summary={s}
                                 isLocal={this.props.isLocal}
-                                hasHaxML={this.props.hasHaxML}
                             />
                         );
                     })}
@@ -238,7 +231,6 @@ class Main extends React.Component {
                 <RecentMatches
                     isLocal={this.props.isLocal}
                     summaries={summaryMap}
-                    hasHaxML={this.props.hasHaxML}
                 />
                 <div className="Main__ShowMore">
                     <button className="Button__Round" onClick={showMore}>Show More</button>
@@ -253,13 +245,3 @@ const defaultLimit = 10;
 console.log(`Showing records from ${isLocal ? "local" : "Firebase"}.`);
 const mainEl = <Main limit={defaultLimit} isLocal={isLocal} />
 ReactDOM.render(mainEl, document.getElementById("main"));
-
-fetch(`${HAXML_SERVER}/hello`).then(async (res) => {
-    const status = await res.text();
-    console.log(status);
-    const mainHaxML = <Main limit={defaultLimit} isLocal={isLocal} hasHaxML={true} />
-    ReactDOM.render(mainHaxML, document.getElementById("main"));
-}).catch((err) => {
-    console.error(err);
-    console.log("HaxML server is not available.");
-});
