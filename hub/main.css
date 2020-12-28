@@ -46,6 +46,15 @@ html {
     opacity: 0.75;
 }
 
+.Button__Fake {
+    opacity: 0.25;
+}
+
+.Button__Fake:hover {
+    cursor: not-allowed;
+    opacity: 0.25;
+}
+
 .Main__ShowMore {
     text-align: center;
     font-size: 14px;
@@ -107,4 +116,8 @@ html {
 
 .Summary__CSV {
     background: #63bee6;
+}
+
+.Summary__XG {
+    background: #ed348e;
 }
