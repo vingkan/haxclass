@@ -1,7 +1,7 @@
 /* global db */
 
 const isLocal = document.location.hostname === "localhost";
-const HAXML_SERVER = isLocal ? "http://localhost:5000" : "http://104.236.21.173:5000";
+const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuapp.com";
 
 function listenForSummariesFromFirebase(limit, callback, prevListener) {
     const ref = db.ref("summary");
