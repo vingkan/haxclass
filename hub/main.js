@@ -1,6 +1,6 @@
 /* global db */
 
-const isLocal = document.location.hostname === "localhost";
+const isLocal = document.location.hostname === "localhost" && document.location.href.indexOf("l=false") == -1;
 const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuapp.com";
 
 function listenForSummariesFromFirebase(limit, callback, prevListener) {
@@ -99,6 +99,7 @@ class Summary extends React.Component {
         const getId = (e) => {
             prompt("Match ID:", s.id);
         };
+        const maxLineLength = 50;
         const urlReplay = `./replay.html?l=${this.props.isLocal}&m=${s.id}`;
         const urlJSON = `./json.html?l=${this.props.isLocal}&m=${s.id}`;
         const urlCSV = `./csv.html?l=${this.props.isLocal}&m=${s.id}`;
@@ -107,6 +108,9 @@ class Summary extends React.Component {
         const nPlayers = s.players.split(", ").length;
         const pluralPlayers = nPlayers === 1 ? "Player" : "Players";
         const playerString = `${nPlayers} ${pluralPlayers}: ${s.players}`;
+        const sizeString = ` | ${getSizeString(s.size)}`;
+        const stadiumString = limitChars(s.stadium, maxLineLength - sizeString.length);
+        const metaString = `${stadiumString}${sizeString}`;
         return (
             <div className="Summary__Record">
                 <div className="Summary__Half">
@@ -121,8 +125,8 @@ class Summary extends React.Component {
                 </div>
                 <div className="Summary__Half Summary__Right">
                     <div className="Summary__Date">{getDateString(s.saved)}</div>
-                    <div className="Summary__Players">{limitChars(playerString, 50)}</div>
-                    <div className="Summary__Meta">{s.stadium} | {getSizeString(s.size)}</div>
+                    <div className="Summary__Players">{limitChars(playerString, maxLineLength)}</div>
+                    <div className="Summary__Meta">{metaString}</div>
                 </div>
             </div>
         );
