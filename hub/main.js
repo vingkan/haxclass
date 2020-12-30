@@ -170,7 +170,10 @@ class Main extends React.Component {
             limit: props.limit || 5,
             summaries: {},
             listener: null,
-            loading: false
+            loading: false,
+            matchID: "",
+            match: null,
+            searching: false
         };
     }
     componentDidMount() {
@@ -187,7 +190,7 @@ class Main extends React.Component {
             component.setState({
                 summaries: val,
                 listener: newListener,
-                loading: false,
+                loading: false
             });
         }, prevListener);
     }
@@ -199,6 +202,18 @@ class Main extends React.Component {
         const pluralSummaries = nSummaries === 1 ? "recent match" : "recent matches";
         const recordsSource = this.props.isLocal ? "local records" : "database records";
         const resultsString = `Showing ${nSummaries} ${pluralSummaries} from ${recordsSource}.`;
+        const hasMatchID = this.state.matchID && this.state.matchID.length > 0;
+        let matchEl;
+        if (hasMatchID) {
+            if (this.state.match) {
+                const matchMap = { [this.state.matchID]: this.state.match };
+                matchEl = <RecentMatches isLocal={this.props.isLocal} summaries={matchMap} />;
+            } else if (this.state.searching) {
+                matchEl = <p>Searching...</p>;
+            } else {
+                matchEl = <p>No match summary found for ID: {this.state.matchID}</p>;
+            }         
+        }
         const updateLimit = (e) => {
             if (e.target.value) {
                 const limit = parseInt(e.target.value);
@@ -208,6 +223,18 @@ class Main extends React.Component {
                 }
             }
         };
+        const updateSearch = (e) => {
+            const matchID = e.target.value;
+            if (matchID.length > 0) {
+                component.setState({ matchID, match: null, searching: true });
+                db.ref(`summary/${matchID}`).once("value", (snap) => {
+                    const match = snap.val();
+                    component.setState({ matchID, match, searching: false });
+                });
+            } else {
+                component.setState({ matchID, match: null, searching: false });
+            }
+        };
         const showMore = (e) => {
             const limit = component.state.limit + 5;
             component.setState({ limit });
@@ -215,30 +242,42 @@ class Main extends React.Component {
         };
         return (
             <div className="Main__Container">
-                <h1>Recent Matches</h1>
-                <div className="Main__Limit">
-                    <div>
-                        <span>{resultsString}</span>
-                    </div>
-                    <div>
-                        <span>Limit</span>
-                        <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            value={this.state.limit}
-                            onChange={updateLimit}
-                        />
-                    </div>
+                <div className="Main__Search">
+                    <h1>HaxClass Hub</h1>
+                    <h2>Find Match By ID</h2>
+                    <input
+                        type="text"
+                        placeholder="Match ID"
+                        onChange={updateSearch}
+                    />
+                    {matchEl}
                 </div>
-                <p>{this.state.loading ? "Loading..." : ""}</p>
-                <RecentMatches
-                    isLocal={this.props.isLocal}
-                    summaries={summaryMap}
-                />
-                <div className="Main__ShowMore">
-                    <button className="Button__Round" onClick={showMore}>Show More</button>
-                    <p>{resultsString}</p>
+                <div className="Main__Recent">
+                    <h2>Recent Matches</h2>
+                    <div className="Main__Limit">
+                        <div>
+                            <span>{resultsString}</span>
+                        </div>
+                        <div>
+                            <span>Limit</span>
+                            <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={this.state.limit}
+                                onChange={updateLimit}
+                            />
+                        </div>
+                    </div>
+                    <p>{this.state.loading ? "Loading..." : ""}</p>
+                    <RecentMatches
+                        isLocal={this.props.isLocal}
+                        summaries={summaryMap}
+                    />
+                    <div className="Main__ShowMore">
+                        <button className="Button__Round" onClick={showMore}>Show More</button>
+                        <p>{resultsString}</p>
+                    </div>
                 </div>
             </div>
         );

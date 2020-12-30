@@ -10,6 +10,18 @@ html {
     margin: 0 auto;
 }
 
+.Main__Search input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 5px;
+    font-size: 14px;
+}
+
+.Main__Search p {
+    font-size: 14px;
+    line-height: 20px;
+}
+
 .Main__Limit {
     font-size: 14px;
     line-height: 20px;
