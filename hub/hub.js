@@ -282,16 +282,15 @@ function drawBallAndPlayers(svgEl, toX, toY, stadium, match) {
             playerEl.setAttribute("cx", toX(cornerX));
             playerEl.setAttribute("cy", toY(cornerY));
             playerEl.setAttribute("r", PLAYER_RADIUS);
-            playerEl.setAttribute("fill", player.team);
+            playerEl.classList.add("player");
+            playerEl.classList.add(player.team);
             const textEl = makeSvgEl("text", {
                 x: toX(cornerX),
                 y: toY(cornerY),
                 dy: (7 / 3) * PLAYER_RADIUS,
-                fill: "white",
-                "text-anchor": "middle",
-                "font-family": "sans-serif",
                 "font-size": (4 / 3) * PLAYER_RADIUS,
             });
+            textEl.classList.add("username");
             textEl.innerHTML = player.name;
             svgEl.appendChild(playerEl);
             svgEl.appendChild(textEl);
