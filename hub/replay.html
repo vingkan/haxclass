@@ -4,134 +4,30 @@
     <title>HaxClass</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="replay.css">
     <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-database.js"></script>
-    <style type="text/css">
-
-        html {
-            background: #6a6a6a;
-            color: white;
-            font-size: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        body {
-            width: 100%;
-            height: 100%;
-            overflow-y: scroll;
-            padding-right: 17px;
-            box-sizing: content-box;
-        }
-        
-        #scoreboard {
-            padding: 10px;
-            text-align: center;
-            font-family: sans-serif;
-            font-size: 25px;
-        }
-
-        #score, #clock {
-            font-family: sans-serif;
-        }
-
-        #scores {
-            margin: 15px auto;
-        }
-
-        #clock {
-            font-size: 35px;
-        }
-
-        #log {
-            text-align: center;
-            font-family: sans-serif;
-            font-size: 18px;
-            display: none;
-        }
-
-        #log-clock {
-            font-family: sans-serif;
-            font-size: 20px;
-        }
-
-        #full-log {
-            margin: 10px auto;
-            font-family: sans-serif;
-            font-size: 16px;
-        }
-
-        #full-log :first-child {
-            font-weight: bold;
-            font-size: 20px;
-        }
-
-        #red-score-icon, #blue-score-icon {
-            margin: 0 5px;
-            padding: 5px;
-            border-radius: 5px;
-            font-size: 20px;
-        }
-
-        #red-score-icon {
-            background: red;
-        }
-
-        #blue-score-icon {
-            background: blue;
-        }
-
-        /*.column {
-            display: inline-block;
-            vertical-align: top;
-        }
-
-        .column-main {
-            width: 74%;
-            padding: 0 1%;
-        }
-
-        .column-log {
-            width: 20%;
-            padding: 0 1%;
-        }*/
-
-        #full-log {
-            width: 400px;
-            text-align: center;
-        }
-
-        #slider {
-            width: 400px;
-        }
-
-        #stadium-name {
-            font-size: 18px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-
-    </style>
 </head>
 <body>
     <div class="column column-main">
         <div id="scoreboard">
-            <div id="clock">00:00</div>
-            <div id="controls">
-                <input id="play" type="button" value="Play" />
-                <input id="slider" type="range" />
-            </div>
-            <div id="scores">
-                <span id="red-score-icon">Red</span>
-                <span id="score">0 - 0</span>
-                <span id="blue-score-icon">Blue</span>
+            <div id="hub">
+                <div id="clock">00:00</div>
+                <div id="controls">
+                    <input id="play" type="button" value="Play" />
+                    <input id="slider" type="range" />
+                    <div id="stadium-name">Stadium Name</div>
+                </div>
+                <div id="scores">
+                    <span id="red-score-icon">Red</span>
+                    <span id="score">0 - 0</span>
+                    <span id="blue-score-icon">Blue</span>
+                </div>
             </div>
             <div id="log">
                 <span id="log-clock">0:00</span>
                 <span id="log-message">Game started.</span>
             </div>
-            <div id="stadium-name">Stadium Name</div>
         </div>
         <svg viewbox="0 0 0 0" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>

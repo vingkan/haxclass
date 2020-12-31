@@ -114,9 +114,10 @@ class Summary extends React.Component {
         return (
             <div className="Summary__Record">
                 <div className="Summary__Half">
-                    <div className="Summary__Score">{winner} {s.scoreRed} - {s.scoreBlue}</div>
-                    <div className="Summary__Duration">{getDurationString(s.time)}</div>
-                    <br />
+                    <h3>
+                        <span className="Summary__Score">{winner} {s.scoreRed} - {s.scoreBlue}</span>
+                        <span className="Summary__Duration">{getDurationString(s.time)}</span>
+                    </h3>
                     <a className="Summary__ID Button__Round" onClick={getId}>ID</a>
                     <a className="Summary__Replay Button__Round" target="_blank" href={urlReplay}>Replay</a>
                     <a className="Summary__JSON Button__Round" target="_blank" href={urlJSON}>JSON</a>
@@ -124,7 +125,9 @@ class Summary extends React.Component {
                     <a className="Summary__XG Button__Round" target="_blank" href={urlXG}>XG</a>
                 </div>
                 <div className="Summary__Half Summary__Right">
-                    <div className="Summary__Date">{getDateString(s.saved)}</div>
+                    <h3>
+                        <div className="Summary__Date">{getDateString(s.saved)}</div>
+                    </h3>
                     <div className="Summary__Players">{limitChars(playerString, maxLineLength)}</div>
                     <div className="Summary__Meta">{metaString}</div>
                 </div>
@@ -242,8 +245,10 @@ class Main extends React.Component {
         };
         return (
             <div className="Main__Container">
-                <div className="Main__Search">
+                <section>
                     <h1>HaxClass Hub</h1>
+                </section>
+                <section className="Main__Search">
                     <h2>Find Match By ID</h2>
                     <input
                         type="text"
@@ -251,12 +256,12 @@ class Main extends React.Component {
                         onChange={updateSearch}
                     />
                     {matchEl}
-                </div>
-                <div className="Main__Recent">
+                </section>
+                <section className="Main__Recent">
                     <h2>Recent Matches</h2>
                     <div className="Main__Limit">
                         <div>
-                            <span>{resultsString}</span>
+                            <p>{resultsString}</p>
                         </div>
                         <div>
                             <span>Limit</span>
@@ -278,7 +283,7 @@ class Main extends React.Component {
                         <button className="Button__Round" onClick={showMore}>Show More</button>
                         <p>{resultsString}</p>
                     </div>
-                </div>
+                </section>
             </div>
         );
     }

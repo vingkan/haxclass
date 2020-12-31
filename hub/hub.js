@@ -146,7 +146,7 @@ function leftpad(val) {
 
 function toClock(secs) {
     const s = Math.floor(secs);
-    return `${Math.floor(s / 60)}:${leftpad(s % 60)}`;
+    return `${leftpad(Math.floor(s / 60))}:${leftpad(s % 60)}`;
 }
 
 function makeSvgEl(tag, props) {
@@ -168,15 +168,14 @@ function drawFieldAndGoals(svgEl, toX, toY, stadium) {
     svgEl.appendChild(makeSvgEl("rect", {
         width: stadium.field.sizeX,
         height: stadium.field.sizeY,
-        fill: "gray",
+        "class": "field-pitch",
     }));
     svgEl.appendChild(makeSvgEl("line", {
         x1: toX(stadium.field.midX),
         y1: toY(stadium.bounds.minY),
         x2: toX(stadium.field.midX),
         y2: toY(stadium.bounds.maxY),
-        stroke: "white",
-        "stroke-width": 2,        
+        "class": "field-line",
     }));
     const gpRed = stadium.goalposts[TEAMS.Red];
     const gpBlue = stadium.goalposts[TEAMS.Blue];
@@ -201,8 +200,7 @@ function drawFieldAndGoals(svgEl, toX, toY, stadium) {
         ...goalCoordsRed,
         y1: toY(stadium.bounds.minY),
         y2: toY(stadium.bounds.maxY),
-        stroke: "white",
-        "stroke-width": 2,
+        "class": "field-line",
     }));
     svgEl.appendChild(makeSvgEl("path", {
         d: makeArcPath({
@@ -210,9 +208,7 @@ function drawFieldAndGoals(svgEl, toX, toY, stadium) {
             sweep: 1,
         }),
         fill: "none",
-        stroke: "white",
-        "stroke-width": 2,
-        "stroke-dasharray": "10",
+        "class": "field-line dashed",
     }));
     const goalCoordsBlue = {
         x1: toX(goalposts[2].x),
@@ -224,8 +220,7 @@ function drawFieldAndGoals(svgEl, toX, toY, stadium) {
         ...goalCoordsBlue,
         y1: toY(stadium.bounds.minY),
         y2: toY(stadium.bounds.maxY),
-        stroke: "white",
-        "stroke-width": 2,
+        "class": "field-line",
     }));
     svgEl.appendChild(makeSvgEl("path", {
         d: makeArcPath({
@@ -233,9 +228,7 @@ function drawFieldAndGoals(svgEl, toX, toY, stadium) {
             sweep: 0,
         }),
         fill: "none",
-        stroke: "white",
-        "stroke-width": 2,
-        "stroke-dasharray": "10",
+        "class": "field-line dashed",
     }));
 }
 
@@ -253,7 +246,7 @@ function drawBallAndPlayers(svgEl, toX, toY, stadium, match) {
             ballEl.setAttribute("cx", toX(ball.x));
             ballEl.setAttribute("cy", toY(ball.y));
             ballEl.setAttribute("r", stadium.ball.radius);
-            ballEl.setAttribute("fill", "lime");
+            ballEl.classList.add("ball");
             svgEl.appendChild(ballEl);
             discElMap["ball"] = ballEl;
         } else {
@@ -262,16 +255,15 @@ function drawBallAndPlayers(svgEl, toX, toY, stadium, match) {
             playerEl.setAttribute("cx", toX(pos.x));
             playerEl.setAttribute("cy", toY(pos.y));
             playerEl.setAttribute("r", PLAYER_RADIUS);
-            playerEl.setAttribute("fill", pos.team);
+            playerEl.classList.add("player");
+            playerEl.classList.add(pos.team);
             const textEl = makeSvgEl("text", {
                 x: toX(pos.x),
                 y: toY(pos.y),
                 dy: (7 / 3) * PLAYER_RADIUS,
-                fill: "white",
-                "text-anchor": "middle",
-                "font-family": "sans-serif",
                 "font-size": (4 / 3) * PLAYER_RADIUS,
             });
+            textEl.classList.add("username");
             textEl.innerHTML = pos.name;
             svgEl.appendChild(playerEl);
             svgEl.appendChild(textEl);

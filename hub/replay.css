@@ -1,0 +1,237 @@
+@import url('https://fonts.googleapis.com/css2?family=Quantico:wght@700&family=Roboto:wght@400;700&display=swap');
+
+:root {
+    --color-dark: rgb(9, 16, 31);
+    --color-medium: rgb(24, 35, 56);
+    --color-light: rgb(39, 53, 82);
+    --color-accent: rgb(40, 202, 183);
+    --color-futsal: rgb(127, 227, 84);
+    --color-red: rgb(229, 110, 86);
+    --color-blue: rgb(87, 137, 229);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-medium);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-light);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: white;
+    cursor: pointer;
+}
+
+html {
+    background: var(--color-dark);
+    color: white;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    padding-right: 17px;
+    box-sizing: content-box;
+}
+
+#scoreboard {
+    padding: 0 10px;
+    text-align: center;
+    font-size: 25px;
+}
+
+#hub {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Quantico', sans-serif;
+}
+
+#hub div {
+    vertical-align: middle;
+}
+
+#clock {
+    font-size: 50px;
+    text-align: left;
+    width: 150px;
+}
+
+#scores {
+    margin: 0;
+    margin-top: 20px;
+    width: 200px;
+}
+
+#controls {
+    margin: 15px 0;
+}
+
+#controls input {
+    vertical-align: middle;
+}
+
+#stadium-name {
+    font-size: 18px;
+    line-height: 18px;
+    margin: 5px 0;
+}
+
+#log {
+    text-align: center;
+    font-size: 18px;
+    display: none;
+}
+
+#log-clock {
+    font-size: 20px;
+}
+
+#full-log {
+    margin: 10px auto;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+#full-log :first-child {
+    font-weight: bold;
+    font-size: 20px;
+    color: white;
+}
+
+#red-score-icon, #blue-score-icon {
+    margin: 0 5px;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 20px;
+}
+
+#red-score-icon {
+    background: var(--color-red);
+}
+
+#blue-score-icon {
+    background: var(--color-blue);
+}
+
+/*.column {
+    display: inline-block;
+    vertical-align: top;
+}
+
+.column-main {
+    width: 74%;
+    padding: 0 1%;
+}
+
+.column-log {
+    width: 20%;
+    padding: 0 1%;
+}*/
+
+#full-log {
+    width: 400px;
+    text-align: center;
+}
+
+#play {
+    background: var(--color-futsal);
+    color: var(--color-dark);
+    border: 1px solid var(--color-light);
+    outline: 1px solid var(--color-light);
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Quantico', sans-serif;
+    font-size: 18px;
+    line-height: 24px;
+    width: 85px;
+}
+
+#play:hover {
+    background: white;
+    cursor: pointer;
+}
+
+#slider {
+    width: 400px;
+}
+
+/*
+ * https://dev.to/_phzn/styling-range-sliders-with-css-4lgl
+ */
+
+input[type="range"] {
+    -webkit-appearance: none;
+}
+
+input[type="range"]:focus {
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--color-futsal);
+    height: 5px;
+}
+
+input[type="range"]::-moz-range-track {
+    background: var(--color-futsal);
+    height: 5px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 15px;
+    width: 15px;
+    background: var(--color-futsal);
+    margin-top: -5px;
+    border-radius: 50%;
+}
+
+input[type="range"]::-moz-range-thumb {
+    height: 15px;
+    width: 15px;
+    background: var(--color-futsal);
+    margin-top: -5px;
+    border-radius: 50%;
+}
+
+.field-pitch {
+    fill: var(--color-medium);
+}
+
+.field-line {
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 2;
+}
+
+.dashed {
+    stroke-dasharray: 10;
+}
+
+.ball {
+    fill: var(--color-futsal);
+}
+
+.player.red {
+    fill: var(--color-red);
+}
+
+.player.blue {
+    fill: var(--color-blue);
+}
+
+.username {
+    fill: white;
+    text-anchor: middle;
+    font-family: 'Roboto', sans-serif;
+}

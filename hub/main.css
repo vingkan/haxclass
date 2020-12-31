@@ -1,8 +1,73 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quantico:wght@700&family=Roboto:wght@400;700&display=swap');
+
+:root {
+    --color-dark: rgb(9, 16, 31);
+    --color-medium: rgb(24, 35, 56);
+    --color-light: rgb(39, 53, 82);
+    --color-light-a15: rgba(39, 53, 82, 0.15);
+    --color-light-a25: rgba(39, 53, 82, 0.25);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-medium);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-light);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: white;
+    cursor: pointer;
+}
 
 html {
-    background: #f0feff;
     font-family: 'Roboto', sans-serif;
+    background: var(--color-dark);
+    color: white;
+}
+
+h1, h2, h3 {
+    font-family: 'Quantico', sans-serif;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+h1 {
+    font-size: 32px;
+    line-height: 38px;
+}
+
+h2 {
+    font-size: 24px;
+    line-height: 30px;
+}
+
+h3 {
+    font-size: 18px;
+    line-height: 24px;
+}
+
+p {
+    font-size: 14px;
+    line-height: 20px;
+}
+
+input {
+    background: var(--color-medium);
+    color: white;
+    border: 1px solid var(--color-light);
+    outline: 1px solid var(--color-light);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+section {
+    margin: 20px auto;
 }
 
 .Main__Container {
@@ -14,25 +79,19 @@ html {
     box-sizing: border-box;
     width: 100%;
     padding: 5px;
-    font-size: 14px;
-}
-
-.Main__Search p {
-    font-size: 14px;
-    line-height: 20px;
 }
 
 .Main__Limit {
-    font-size: 14px;
-    line-height: 20px;
+    display: flex;
+    justify-content: space-between;
 }
 
 .Main__Limit div {
-    display: inline-block;
+    vertical-align: top;
 }
 
-.Main__Limit div:nth-child(2) {
-    float: right;
+.Main__Limit p {
+    margin: 0;
 }
 
 .Main__Limit input {
@@ -50,12 +109,12 @@ html {
     border-radius: 15px;
     height: 30px;
     line-height: 20px;
-    color: black;
+    color: var(--color-dark);
 }
 
 .Button__Round:hover {
     cursor: pointer;
-    opacity: 0.75;
+    background: white;
 }
 
 .Button__Fake {
@@ -77,8 +136,8 @@ html {
 }
 
 .Summary__Record {
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
-    background: white;
+    box-shadow: 0 0 5px rgba(39, 53, 82, 0.15);
+    background: var(--color-medium);
     margin: 10px auto;
     padding: 5px;
     font-size: 14px;
@@ -88,12 +147,13 @@ html {
 }
 
 .Summary__Record:hover {
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
-    background: white;
+    box-shadow: 0 0 10px rgba(39, 53, 82, 0.25);
+    background: var(--color-light);
 }
 
 .Summary__Half {
     vertical-align: top;
+    padding: 5px;
 }
 
 .Summary__Half div, .Summary__Half a {
@@ -109,13 +169,16 @@ html {
     display: block;
 }
 
-.Summary__Score, .Summary__Duration, .Summary__Date {
-    font-size: 18px;
-    line-height: 20px;
+.Summary__Half h3 {
+    margin: 0;
+    margin-bottom: 5px;
 }
 
-.Summary__Score, .Summary__Date {
-    font-weight: bold;
+.Summary__Duration {
+    font-family: 'Roboto', sans-serif;
+    font-weight: normal;
+    margin-left: 10px;
+    opacity: 0.75;
 }
 
 .Summary__ID {
