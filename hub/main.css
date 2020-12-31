@@ -83,14 +83,17 @@ html {
     padding: 5px;
     font-size: 14px;
     line-height: 16px;
+    display: flex;
+    justify-content: space-between;
 }
 
 .Summary__Record:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
     background: white;
 }
 
 .Summary__Half {
-    display: inline-block;
+    vertical-align: top;
 }
 
 .Summary__Half div, .Summary__Half a {
@@ -99,7 +102,6 @@ html {
 }
 
 .Summary__Right {
-    float: right;
     text-align: right;
 }
 
