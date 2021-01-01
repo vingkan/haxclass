@@ -232,9 +232,11 @@
 
 .KickLegend span {
     margin-right: 10px;
+    font-family: 'Quantico', sans-serif;
     font-weight: bold;
 }
 
 .KickLegend span:nth-child(1) {
+    font-family: 'Roboto', sans-serif;
     font-weight: normal;
 }

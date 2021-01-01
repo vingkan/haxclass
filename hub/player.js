@@ -530,6 +530,52 @@ function filterKicksByCommonMatches(inKickRes, props) {
     }, {});
 }
 
+function filterKicksByLastN(nMatches) {
+    return (inKickRes, props) => {
+        const allKickRes = filterKicksByStadium(inKickRes, props);
+        const filterKicks = (kickMap, recentMatches) => {
+            return Object.keys(kickMap).reduce((agg, key) => {
+                const kick = kickMap[key];
+                if (kick.match in recentMatches) {
+                    agg[key] = kick;
+                }
+                return agg;
+            }, {});
+        };
+        return props.usernames.reduce((out, username) => {
+            const kickRes = allKickRes[username];
+            const matchSavedMap = combineKicks(kickRes).reduce((agg, kick) => {
+                if (!(kick.match in agg)) {
+                    agg[kick.match] = 0;
+                }
+                if (kick.saved > agg[kick.match]) {
+                    agg[kick.match] = kick.saved;
+                }
+                return agg;
+            }, {});
+            const recentMatches = Object.keys(matchSavedMap).map((match) => {
+                return {
+                    match,
+                    saved: matchSavedMap[match]
+                };
+            }).sort((a, b) => {
+                return b.saved - a.saved;
+            }).filter((m, i) => {
+                return i < nMatches;
+            }).reduce((agg, val) => {
+                agg[val.match] = val.saved;
+                return agg;
+            }, {});
+            out[username] = {
+                playerName: kickRes.playerName,
+                to: filterKicks(kickRes.to, recentMatches),
+                from: filterKicks(kickRes.from, recentMatches)
+            }
+            return out;
+        }, {});
+    };
+}
+
 function makeKickOffensive(kick) {
     const reflectX = kick.fromTeam === "red" ? 1 : -1;
     return {
@@ -641,6 +687,8 @@ console.log(`Fetching player data from ${isLocal ? "local" : "Firebase"}.`);
 const comparisonModes = {
     "All-Time": filterKicksByStadium,
     "Common Matches": filterKicksByCommonMatches,
+    "Last 3 Matches": filterKicksByLastN(3),
+    "Last 5 Matches": filterKicksByLastN(5),
 };
 
 const kickModes = {
@@ -763,6 +811,6 @@ loadStadiumData().then((res) => {
 }).catch(console.error);
 
 if (isLocal) {
-    // addPlayerToComparison("pav");
-    // addPlayerToComparison("Vinesh");
+    addPlayerToComparison("pav");
+    addPlayerToComparison("Vinesh");
 }
