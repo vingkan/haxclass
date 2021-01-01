@@ -94,3 +94,34 @@ if (script === "download_summaries") {
         process.exit(0);
     });
 }
+
+if (script === "download_player") {
+    const playerName = "Vinesh";
+    const fromRef = db.ref("kick").orderByChild("fromName").equalTo(playerName);
+    const toRef = db.ref("kick").orderByChild("toName").equalTo(playerName);
+    const saveQuery = (ref, type) => {
+        return new Promise((resolve, reject) => {
+            ref.once("value", (snap) => {
+                const val = snap.val() || {};
+                const n = Object.keys(val).length;
+                const data = JSON.stringify(val, null, 2);
+                fs.writeFileSync(`./hub/player_test_data_${type}_kicks.json`, data);
+                resolve(`Successfully downloaded ${n} kicks ${type} ${playerName}.`);
+            }).catch((err) => {
+                resolve(`Failed to download kicks ${type} ${playerName}.`);
+            });
+        });
+    };
+    const promises = [
+        saveQuery(fromRef, "from"),
+        saveQuery(toRef, "to"),
+    ];
+    Promise.all(promises).then((messages) => {
+        messages.forEach((msg) => console.log(msg));
+        process.exit(0);
+    }).catch((err) => {
+        console.log("Error while downloading player kicks:");
+        console.log(err);
+        process.exit(0);
+    });
+}
