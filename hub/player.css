@@ -1,0 +1,95 @@
+:root {
+    --color-red: rgb(229, 110, 86);
+    --color-blue: rgb(87, 137, 229);
+}
+
+/* SVG Field */
+
+.field-pitch {
+    fill: var(--color-medium);
+}
+
+.field-line {
+    stroke: rgba(255, 255, 255, 0.5);
+    stroke-width: 2;
+}
+
+.dashed {
+    stroke-dasharray: 10;
+}
+
+.ball {
+    fill: var(--color-futsal);
+}
+
+.player.red {
+    fill: var(--color-red);
+}
+
+.player.blue {
+    fill: var(--color-blue);
+}
+
+.username {
+    fill: white;
+    text-anchor: middle;
+    font-family: 'Roboto', sans-serif;
+}
+
+.shot {
+    stroke-width: 1;
+    stroke-dasharray: 5;
+}
+
+.shot.red {
+    stroke: var(--color-red);
+}
+
+.shot.blue {
+    stroke: var(--color-blue);
+}
+
+/* Player Analytics */
+
+.PlayerMain__Container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 10px;
+}
+
+/* Player Comparison */
+
+.PlayerMain__PlayerComparison {
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.PlayerComparison {
+    display: inline-block;
+    background: var(--color-medium);
+    margin: 10px;
+    padding: 10px 20px;
+}
+
+.PlayerComparison:nth-child(1) {
+    margin-left: 0;
+}
+
+.PlayerComparison .Percentage span {
+    display: block;
+    margin: 5px 0;
+    font-size: 14px;
+    line-height: 14px;
+}
+
+.PlayerComparison .Percentage .Value {
+    font-family: 'Quantico', sans-serif;
+    font-size: 24px;
+    line-height: 24px;
+}
+
+.PlayerComparison .Percentage .Definition {
+    opacity: 0.5;
+}
+
+

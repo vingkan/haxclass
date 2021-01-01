@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HaxClass</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+    <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-database.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="main.css">
+    <link rel="stylesheet" type="text/css" href="player.css">
+    <script type="text/javascript">
+        
+        // Client keys that allow read-only access.
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4kjMsnaUhaGYL8tCS4FTj2UtGNWYKV14",
+            authDomain: "haxclass.firebaseapp.com",
+            databaseURL: "https://haxclass.firebaseio.com",
+            projectId: "haxclass",
+            storageBucket: "haxclass.appspot.com",
+            messagingSenderId: "425802086346",
+            appId: "1:425802086346:web:595b8d5f7058079a3e0133"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+    </script>
+</head>
+<body>
+    <div id="main"></div>
+    <script src="player.js" type="text/babel"></script>
+</body>
+</html>
