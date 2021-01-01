@@ -20,7 +20,7 @@ let localVal;
 let localKeys;
 let isLocalReady = false;
 const willFireLocalOnce = true;
-fetch("./summary_test_data.json").then(async (res) => {
+fetch("../mock/summary_test_data.json").then(async (res) => {
     localVal = (await res.json()) || {};
     localKeys = Object.keys(localVal).sort((a, b) => {
         return localVal[b].saved - localVal[a].saved;

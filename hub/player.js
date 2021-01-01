@@ -1,104 +1,89 @@
-const stadiumMap = {
-    "NAFL Official Map v1": {
-    "stadium": "NAFL Official Map v1",
-    "goalposts": {
-      "1": {
-        "posts": [
-          {
-            "x": -700,
-            "y": -85
-          },
-          {
-            "x": -700,
-            "y": 85
-          }
-        ],
-        "size": 170,
-        "mid": {
-          "x": -700,
-          "y": 0
-        }
-      },
-      "2": {
-        "posts": [
-          {
-            "x": 700,
-            "y": -85
-          },
-          {
-            "x": 700,
-            "y": 85
-          }
-        ],
-        "size": 170,
-        "mid": {
-          "x": 700,
-          "y": 0
-        }
-      }
-    },
-    "bounds": {
-      "minX": -785,
-      "maxX": 785,
-      "minY": -335,
-      "maxY": 335
-    },
-    "ball": {
-      "radius": 5.8
-    }
-  }
-};
-
 const TEAMS = { 1: "red", 2: "blue", "1": "red", "2": "blue", Red: 1, Blue: 2 };
 const PLAYER_RADIUS = 15;
 const GOAL_AREA_RADIUS = 1.5;
+const LOCAL_DELAY = 0;
 
-function calculateField(val) {
-    const sizeX = val.bounds.maxX - val.bounds.minX;
-    const sizeY = val.bounds.maxY - val.bounds.minY;
-    const midX = (sizeX / 2) + val.bounds.minX;
-    const midY = (sizeY / 2) + val.bounds.minY;
-    const field = { sizeX, sizeY, midX, midY };
-    return { ...val, field };
+// https://coolors.co/59cd90-d90368-3fa7d6-f79d84-ffd400
+const PLAYER_COLORS = [
+    `217, 3, 104`,
+    `63, 167, 214`,
+    `255, 212, 0`,
+    `89, 205, 144`,
+];
+
+let allTimeKickMap = {};
+
+async function loadStadiumData() {
+    const stadiumRes = await fetch(`../stadium/map_data.json`).catch(console.error);
+    const stadiumDataMap = parseStadiumDataMap(await stadiumRes.json());
+    return stadiumDataMap;
+}
+
+function parseStadiumDataMap(data) {
+    return data.reduce((agg, val) => {
+        const sizeX = val.bounds.maxX - val.bounds.minX;
+        const sizeY = val.bounds.maxY - val.bounds.minY;
+        const midX = (sizeX / 2) + val.bounds.minX;
+        const midY = (sizeY / 2) + val.bounds.minY;
+        agg[val.stadium] = {
+            ...val,
+            field: { sizeX, sizeY, midX, midY, },
+        };
+        return agg;
+    }, {});
 }
 
 function fetchPlayerKicksFromFirebase(playerName) {
     return new Promise((resolveAll, rejectAll) => {
-        const fromRef = db.ref("kick").orderByChild("fromName").equalTo(playerName);
-        const toRef = db.ref("kick").orderByChild("toName").equalTo(playerName);
-        const getQuery = (ref, type) => {
-            return new Promise((resolve, reject) => {
-                ref.once("value", (snap) => {
-                    const kicks = snap.val() || {};
-                    resolve({
-                        success: true,
-                        playerName,
-                        type,
-                        kicks,
-                    });
-                }).catch(reject);
-            });
-        };
-        const promises = [
-            getQuery(fromRef, "from"),
-            getQuery(toRef, "to"),
-        ];
-        Promise.all(promises).then((results) => {
-            const res = results.reduce((agg, val) => {
-                const { type, kicks } = val;
-                agg["playerName"] = playerName;
-                agg[type] = kicks;
-                return agg;
-            }, {});
-            resolveAll(res);
-        }).catch(rejectAll);
+        const isCached = playerName in allTimeKickMap;
+        if (isCached) {
+            console.log(`Using cached data for: ${playerName}.`);
+            resolveAll(allTimeKickMap[playerName]);
+        } else {
+            console.log(`Sending new Firebase query for: ${playerName}.`);
+            const fromRef = db.ref("kick").orderByChild("fromName").equalTo(playerName);
+            const toRef = db.ref("kick").orderByChild("toName").equalTo(playerName);
+            const getQuery = (ref, type) => {
+                return new Promise((resolve, reject) => {
+                    ref.once("value", (snap) => {
+                        const kicks = snap.val() || {};
+                        resolve({
+                            success: true,
+                            playerName,
+                            type,
+                            kicks,
+                        });
+                    }).catch(reject);
+                });
+            };
+            const promises = [
+                getQuery(fromRef, "from"),
+                getQuery(toRef, "to"),
+            ];
+            Promise.all(promises).then((results) => {
+                const res = results.reduce((agg, val) => {
+                    const { type, kicks } = val;
+                    agg["playerName"] = playerName;
+                    agg[type] = kicks;
+                    return agg;
+                }, {});
+                if (combineKicks(res).length === 0) {
+                    rejectAll(`No kicks found for player: ${playerName}`);
+                } else {
+                    resolveAll(res);
+                }
+            }).catch(rejectAll);            
+        }
     });
 }
 
 function fetchPlayerKicksFromLocal(playerName) {
     return new Promise((resolveAll, rejectAll) => {
         const getQuery = async (type) => {
-            const res = await fetch(`./player_test_data_${type}_kicks.json`);
+            await new Promise((resolve, reject) => {
+                setTimeout(resolve, LOCAL_DELAY);
+            });
+            const res = await fetch(`../mock/player_test_data_kicks_${type}_${playerName}.json`);
             const kicks = await res.json();
             return {
                 success: true,
@@ -123,6 +108,54 @@ function fetchPlayerKicksFromLocal(playerName) {
     });
 }
 
+function getPlayerAnalytics(kickRes) {
+    let matchMap = {};
+    Object.keys(kickRes.to).forEach((k) => {
+        const kick = kickRes.to[k];
+        matchMap[kick["match"]] = true;
+    });
+    Object.keys(kickRes.from).forEach((k) => {
+        const kick = kickRes.from[k];
+        matchMap[kick["match"]] = true;
+    });
+    // Shots faced = saves to + errors to.
+    const statsTo = Object.keys(kickRes.to).map((k) => {
+        return { ...(kickRes.to[k]), id: k };
+    }).reduce((agg, kick) => {
+        if (kick.type === "save" || kick.type === "error") {
+            agg.shotsFaced++;
+        }
+        if (kick.type === "save") {
+            agg.saves++;
+        }
+        return agg;
+    }, {
+        saves: 0,
+        shotsFaced: 0,
+    });
+    // Shots taken = goals from + errors from + saves from.
+    const statsFrom = Object.keys(kickRes.from).map((k) => {
+        return { ...(kickRes.from[k]), id: k };
+    }).reduce((agg, kick) => {
+        if (kick.type === "goal" || kick.type === "error" || kick.type === "save") {
+            agg.shotsTaken++;
+        }
+        if (kick.type === "goal" || kick.type === "error") {
+            agg.goals++;
+        }
+        return agg;
+    }, {
+        goals: 0,
+        shotsTaken: 0,
+    });
+    return {
+        name: kickRes.playerName,
+        matches: Object.keys(matchMap).length,
+        ...statsTo,
+        ...statsFrom,
+    };
+}
+
 function makeArcPath(props) {
     const { x1, y1, x2, y2, sweep } = props;
     const d = `M ${x1} ${y1} A 1 1, 0, 0 ${sweep}, ${x2} ${y2}`;
@@ -131,6 +164,18 @@ function makeArcPath(props) {
 
 function Field(props) {
     const s = props.stadium;
+    const hasStadium = Object.keys(s).length > 0;
+    if (!hasStadium) {
+        return (
+            <p>No stadium selected.</p>
+        );
+    }
+    const hasGoalPosts = s.goalposts[TEAMS.Red] && s.goalposts[TEAMS.Blue];
+    if (!hasGoalPosts) {
+        return (
+            <p>No goalposts found for this stadium.</p>
+        );
+    }
     const kicks = props.kicks;
     const toX = (x) => {
         return x - s.bounds.minX;
@@ -201,25 +246,27 @@ function Field(props) {
                         />
                     );
                 })}
-                {kicks.filter(k => k.type === "goal").map((kick) => {
+                {kicks.map((kick) => {
                     return (
                         <circle
-                            className={`player ${kick.fromTeam}`}
+                            className={`player`}
                             cx={toX(kick.fromX)}
                             cy={toY(kick.fromY)}
-                            r={PLAYER_RADIUS}
+                            r={5}
+                            fill={kick.color}
                         />
                     );
                 })}
-                {kicks.filter(k => k.type === "goal").map((kick) => {
+                {kicks.map((kick) => {
                     const oppGoal = kick.fromTeam === "red" ? gpBlue : gpRed;
                     return (
                         <line
-                            className={`shot goal ${kick.fromTeam}`}
+                            className={`shot goal`}
                             x1={toX(kick.fromX)}
                             y1={toY(kick.fromY)}
                             x2={toX(oppGoal.mid.x)}
                             y2={toY(oppGoal.mid.y)}
+                            stroke={kick.color}
                         />
                     );
                 })}
@@ -231,25 +278,36 @@ function Field(props) {
 function PlayerComparison(props) {
     const p = props.player;
     const toPct = (num, den) => {
-        const frac = num / den;
-        const pct = 100* frac;
-        return `${pct.toFixed(1)}%`;
+        if (den > 0) {
+            const frac = num / den;
+            const pct = 100* frac;
+            return `${pct.toFixed(1)}%`; 
+        } else {
+            return `0.0%`;
+        }
     };
     const plur = (n, s, p) => {
         const ps = p ? p : `${s}s`;
         return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
     }
     return (
-        <div className="PlayerComparison">
-            <h3>{p.name}</h3>
-            <p class="Percentage">
+        <div className={`PlayerComparison ${p.matches > 0 ? "HasData" : "NoData"}`}>
+            <span
+                className="Remove"
+                onClick={(e) => {
+                    props.onRemove(props.index);
+                }}
+            >x</span>
+            <h3 style={{color: p.color}}>{p.name}</h3>
+            <p>{plur(p.matches, "match", "matches")}</p>
+            <p className="Percentage">
                 <span className="Value">{toPct(p.goals, p.shotsTaken)}</span>
                 <span className="Label">shot percentage</span>
                 <span className="Definition">
                     {plur(p.goals, "goal")} / {plur(p.shotsTaken, "shot")} taken
                 </span>
             </p>
-            <p class="Percentage">
+            <p className="Percentage">
                 <span className="Value">{toPct(p.saves, p.shotsFaced)}</span>
                 <span className="Label">save percentage</span>
                 <span className="Definition">
@@ -260,112 +318,451 @@ function PlayerComparison(props) {
     );
 }
 
-function PlayerMain(props) {
+function PlayerComparisonInput(props) {
     return (
-        <div className="PlayerMain__Container">
+        <div className="PlayerComparison PlayerComparisonInput">
+            <h3>Add Player</h3>
+            <input
+                type="text"
+                placeholder="username"
+                onKeyPress={async (e) => {
+                    if (e.which === 13) {
+                        const userEl = e.target;
+                        if (userEl.value.length > 0) {
+                            props.setLoading(true);
+                            await props.onSubmit(userEl.value);
+                            userEl.value = "";
+                            props.setLoading(false);
+                        }
+                    }
+                }}
+            />
+            <input
+                type="button"
+                value="Compare"
+                onClick={async (e) => {
+                    const userEl = e.target.previousElementSibling;
+                    if (userEl.value.length > 0) {
+                        props.setLoading(true);
+                        await props.onSubmit(userEl.value);
+                        userEl.value = "";
+                        props.setLoading(false);
+                    }
+                }}
+            />
+        </div>
+    );
+}
+
+function PlayerMain(props) {
+    const [loading, setLoading] = React.useState(false);
+    return (
+        <div className={`PlayerMain__Container ${loading ? "Loading" : ""}`}>
+            <div className="Loader">
+                <div class="lds"><div></div><div></div><div></div></div>
+            </div>
             <section>
                 <h1>Player Analytics</h1>
-            </section>
-            <section>
-                <h2>Player Comparison</h2>
-                <div className="PlayerMain__PlayerComparison">
-                    {props.players.map((p) => {
-                        return (
-                            <PlayerComparison player={p} />
-                        );
-                    })}
+                <div className="Selector">
+                    <span>Stadium:</span>
+                    <select onChange={(e) => {
+                        props.setStadium(e.target.value);
+                    }}>
+                        {props.stadiumChoices.map((stadiumName) => {
+                            const isSelected = stadiumName === props.stadium.stadium;
+                            return (
+                                <option
+                                    value={stadiumName}
+                                    selected={isSelected}
+                                >{stadiumName}</option>
+                            );
+                        })}
+                    </select>
+                </div>
+                <div className="Selector">
+                    <span>Compare Matches:</span>
+                    <select onChange={(e) => {
+                        props.setComparisonMode(e.target.value);
+                    }}>
+                        {props.comparisonChoices.map((compMode) => {
+                            const isSelected = compMode === props.comparisonMode;
+                            return (
+                                <option
+                                    value={compMode}
+                                    selected={isSelected}
+                                >{compMode}</option>
+                            );
+                        })}
+                    </select>
                 </div>
             </section>
             <section>
-                <h2>Field Comparison</h2>
+                <h2>Compare Stats</h2>
+                <div className="PlayerMain__PlayerComparison">
+                    {props.players.map((p, i) => {
+                        return (
+                            <PlayerComparison
+                                key={i}
+                                index={i}
+                                player={p}
+                                onRemove={props.onRemovePlayer}
+                            />
+                        );
+                    })}
+                    <PlayerComparisonInput
+                        onSubmit={props.onAddPlayer}
+                        setLoading={setLoading}
+                    />
+                </div>
+            </section>
+            <section>
+                <h2>Compare Kicks</h2>
+                <div className="Selector">
+                    <span>Show Kicks:</span>
+                    <select onChange={(e) => {
+                        props.setKickMode(e.target.value);
+                    }}>
+                        {props.kickModeChoices.map((kickMode) => {
+                            const isSelected = kickMode === props.kickMode;
+                            return (
+                                <option
+                                    value={kickMode}
+                                    selected={isSelected}
+                                >{kickMode}</option>
+                            );
+                        })}
+                    </select>
+                </div>
+                <div className="KickLegend">
+                    <span>Players:</span>
+                    {props.players.map((p) => {
+                        return (
+                            <span style={{color: p.color}}>{p.name}</span>
+                        );
+                    })}
+                </div>
                 <Field stadium={props.stadium} kicks={props.kicks} />
             </section>
         </div>
     );
 }
 
-// fetchPlayerKicksFromLocal("Vinesh").then((res) => {
-//     console.log(res);
-// }).catch(console.error);
+function combineKicks(kickRes) {
+    let kicks = [];
+    Object.keys(kickRes.to).forEach((k) => {
+        kicks.push(kickRes.to[k]);
+    });
+    Object.keys(kickRes.from).forEach((k) => {
+        kicks.push(kickRes.from[k]);
+    });
+    return kicks;
+}
 
-const stadiumName = "NAFL Official Map v1";
-const stadium = calculateField(stadiumMap[stadiumName]);
-const data = {
-    players: [
-        {
-            name: "Vinesh",
-            goals: 1,
-            shotsTaken: 14,
-            saves: 7,
-            shotsFaced: 16
-        },
-        {
-            name: "pav",
-            goals: 6,
-            shotsTaken: 26,
-            saves: 13,
-            shotsFaced: 32
-        },
-        {
-            name: "Vinesh",
-            goals: 1,
-            shotsTaken: 14,
-            saves: 7,
-            shotsFaced: 16
-        },
-        {
-            name: "pav",
-            goals: 6,
-            shotsTaken: 26,
-            saves: 13,
-            shotsFaced: 32
+function returnEmptyKickRes(playerName) {
+    return {
+        playerName,
+        to: {},
+        from: {}
+    };
+}
+
+function filterKicksByStadium(allKickRes, props) {
+    const s = props.stadium || {};
+    if (!s.stadium) {
+        return {};
+    }
+    const stadiumName = props.stadium.stadium;
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.stadium === stadiumName) {
+                agg[key] = kick;
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: filterKicks(kickRes.to),
+            from: filterKicks(kickRes.from)
         }
-    ],
-    kicks: [
-        {
-            fromName: "Vinesh",
-            fromTeam: "red",
-            fromX: 12,
-            fromY: 0,
-            match: "-MOTVkwbfE_IKa15MVn9",
-            saved: 1607903416292,
-            scoreBlue: 0,
-            scoreLimit: 2,
-            scoreRed: 1,
-            stadium: "NAFL Official Map v1",
-            time: 2.6,
-            timeLimit: 180,
-            type: "goal"
-        },
-        {
-            fromName: "pav",
-            fromTeam: "red",
-            fromX: -20,
-            fromY: 10,
-            match: "-MPc3PR4X1XDNWoCLMZs",
-            saved: 1609137498046,
-            scoreBlue: 2,
-            scoreLimit: 3,
-            scoreRed: 0,
-            stadium: "NAFL 1v1/2v2 Map v1",
-            time: 57.4,
-            timeLimit: 180,
-            toName: "Vinesh",
-            toTeam: "blue",
-            toX: 338,
-            toY: -136,
-            type: "save"
+        return out;
+    }, {});
+}
+
+function filterKicksByCommonMatches(inKickRes, props) {
+    const allKickRes = filterKicksByStadium(inKickRes, props);
+    let matchUserCount = {};
+    props.usernames.forEach((username) => {
+        const kickRes = allKickRes[username];
+        const userMatches = combineKicks(kickRes).reduce((matchMap, kick) => {
+            matchMap[kick["match"]] = true;
+            return matchMap;
+        }, {});
+        Object.keys(userMatches).forEach((match) => {
+            if (!(match in matchUserCount)) {
+                matchUserCount[match] = 0;
+            }
+            matchUserCount[match]++;
+        })
+    });
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            const nUsersForMatch = matchUserCount[kick.match];
+            const isCommonMatch = nUsersForMatch === props.usernames.length;
+            if (isCommonMatch) {
+                agg[key] = kick;
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: filterKicks(kickRes.to),
+            from: filterKicks(kickRes.from)
         }
-    ]
+        return out;
+    }, {});
+}
+
+function makeKickOffensive(kick) {
+    const reflectX = kick.fromTeam === "red" ? 1 : -1;
+    return {
+        ...kick,
+        fromX: reflectX * kick.fromX,
+        fromTeam: "red"
+    };
+}
+
+function makeKickDefensive(kick) {
+    const reflectX = kick.toTeam === "red" ? 1 : -1;
+    return {
+        ...kick,
+        fromX: reflectX * kick.fromX,
+        fromTeam: "blue"
+    };
+}
+
+function filterKicksForGoalsScored(allKickRes, props) {
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.type === "goal" || kick.type === "error") {
+                agg[key] = makeKickOffensive(kick);
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: {},
+            from: filterKicks(kickRes.from)
+        }
+        return out;
+    }, {});
+}
+
+function filterKicksForShotsTaken(allKickRes, props) {
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.type === "goal" || kick.type === "error" || kick.type === "save") {
+                agg[key] = makeKickOffensive(kick);
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: {},
+            from: filterKicks(kickRes.from)
+        }
+        return out;
+    }, {});
+}
+
+function filterKicksForGoalsAllowed(allKickRes, props) {
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.type === "error") {
+                agg[key] = makeKickDefensive(kick);
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: filterKicks(kickRes.to),
+            from: {}
+        }
+        return out;
+    }, {});
+}
+
+function filterKicksForShotsFaced(allKickRes, props) {
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.type === "save" || kick.type === "error") {
+                agg[key] = makeKickDefensive(kick);
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: filterKicks(kickRes.to),
+            from: {}
+        }
+        return out;
+    }, {});
+}
+
+const onLocal = document.location.hostname === "localhost"
+const forcedProd = document.location.href.indexOf("l=false") > -1;
+const isLocal = onLocal && !forcedProd;
+const fetchPlayer = isLocal ? fetchPlayerKicksFromLocal : fetchPlayerKicksFromFirebase;
+console.log(`Fetching player data from ${isLocal ? "local" : "Firebase"}.`);
+
+const comparisonModes = {
+    "All-Time": filterKicksByStadium,
+    "Common Matches": filterKicksByCommonMatches,
 };
 
-const getMain = () => {
-    return (
-        <PlayerMain
-            players={data.players}
-            stadium={stadium}
-            kicks={data.kicks}
-        />
-    );
+const kickModes = {
+    "Goals Scored": filterKicksForGoalsScored,
+    "Shots Taken": filterKicksForShotsTaken,
+    "Goals Allowed": filterKicksForGoalsAllowed,
+    "Shots Faced": filterKicksForShotsFaced,
 };
-ReactDOM.render(getMain(), document.getElementById("main"));
+
+let stadiumDataMap = {};
+let comparison = {
+    comparisonMode: "All-Time",
+    kickMode: "Goals Scored",
+    usernames: [],
+    stadium: {}
+};
+
+const setStadium = async (stadiumName) => {
+    if (stadiumName in stadiumDataMap) {
+        comparison.stadium = stadiumDataMap[stadiumName];
+        renderMain(comparison);
+    }    
+}
+
+const setComparisonMode = (mode) => {
+    if (mode in comparisonModes) {
+        comparison.comparisonMode = mode;
+        renderMain(comparison);
+    }    
+}
+
+const setKickMode = (mode) => {
+    if (mode in kickModes) {
+        comparison.kickMode = mode;
+        renderMain(comparison);
+    }    
+}
+
+const addPlayerToComparison = (username) => {
+    return new Promise((resolve, reject) => {
+        fetchPlayer(username).then((kickRes) => {
+            console.log(`Fetched all-time kicks for ${username}:`);
+            console.log(`${Object.keys(kickRes.from).length} from ${username}.`);
+            console.log(`${Object.keys(kickRes.to).length} to ${username}.`);
+            allTimeKickMap[username] = kickRes;
+            comparison.usernames.push(username);
+            renderMain(comparison);
+            resolve();
+        }).catch((err) => {
+            const msg = `Failed to find data for player: ${username}`;
+            console.log(msg);
+            console.error(err);
+            alert(msg);
+            resolve();
+        });
+    });
+};
+
+const removePlayerFromComparison = (index) => {
+    comparison.usernames.splice(index, 1);
+    renderMain(comparison);
+};
+
+const renderMain = (props) => {
+    const stadiumChoices = Object.keys(stadiumDataMap);
+    const comparisonModeChoices = Object.keys(comparisonModes);
+    const kickModeChoices = Object.keys(kickModes);
+    const filterComparisonFn = comparisonModes[props.comparisonMode];
+    const filterKicksFn = kickModes[props.kickMode];
+    const allComparisonKicks = filterComparisonFn(allTimeKickMap, props);
+    const allFilteredKicks = filterKicksFn(allComparisonKicks, props);
+    let players = [];
+    let kicks = [];
+    props.usernames.forEach((username, i) => {
+        const defaultKickColor = `rgba(${PLAYER_COLORS[i]}, 0.90)`;
+        const comparisonKicks = allComparisonKicks[username] || returnEmptyKickRes(username);
+        const playerStats = getPlayerAnalytics(comparisonKicks);
+        players.push({
+            color: defaultKickColor,
+            ...playerStats
+        });
+        const filteredKicks = allFilteredKicks[username] || returnEmptyKickRes(username);
+        let kickCount = 0;
+        const kicksToAdd = combineKicks(filteredKicks);
+        kicksToAdd.forEach((kick) => {
+            kicks.push({
+                color: defaultKickColor,
+                ...kick
+            });
+        });
+        console.log(`${kicksToAdd.length} kicks for ${username}`);
+    });
+    const getMain = () => {
+        return (
+            <PlayerMain
+                players={players}
+                comparisonMode={props.comparisonMode}
+                comparisonChoices={comparisonModeChoices}
+                setComparisonMode={setComparisonMode}
+                stadium={props.stadium || {}}
+                stadiumChoices={stadiumChoices}
+                setStadium={setStadium}
+                kicks={kicks}
+                kickMode={comparison.kickMode}
+                kickModeChoices={kickModeChoices}
+                setKickMode={setKickMode}
+                onAddPlayer={addPlayerToComparison}
+                onRemovePlayer={removePlayerFromComparison}
+            />
+        );
+    }
+    ReactDOM.render(getMain(), document.getElementById("main"));
+};
+
+renderMain(comparison);
+
+loadStadiumData().then((res) => {
+    stadiumDataMap = res;
+    setStadium("NAFL Official Map v1");
+}).catch(console.error);
+
+if (isLocal) {
+    // addPlayerToComparison("pav");
+    // addPlayerToComparison("Vinesh");
+}

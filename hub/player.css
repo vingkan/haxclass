@@ -1,9 +1,76 @@
 :root {
+    --color-futsal: rgb(127, 227, 84);
     --color-red: rgb(229, 110, 86);
     --color-blue: rgb(87, 137, 229);
 }
 
+/* Loader */
+
+/* https://loading.io/css */
+
+.lds {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+.lds div {
+    display: inline-block;
+    position: absolute;
+    left: 8px;
+    width: 16px;
+    background: #fff;
+    animation: lds 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
+}
+.lds div:nth-child(1) {
+    left: 8px;
+    animation-delay: -0.24s;
+}
+.lds div:nth-child(2) {
+    left: 32px;
+    animation-delay: -0.12s;
+}
+.lds div:nth-child(3) {
+    left: 56px;
+    animation-delay: 0;
+}
+@keyframes lds {
+    0% {
+        top: 8px;
+        height: 64px;
+    }
+    50%, 100% {
+        top: 24px;
+        height: 32px;
+    }
+}
+
+.Loader {
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    text-align: center;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 2;
+}
+
+.Loader div {
+    margin-top: 25%;
+}
+
+.PlayerMain__Container.Loading .Loader {
+    display: block;
+}
+
+
 /* SVG Field */
+
+.Field {
+    margin: 15px auto;
+}
 
 .field-pitch {
     fill: var(--color-medium);
@@ -57,6 +124,28 @@
     padding: 0 10px;
 }
 
+.Selector {
+    display: inline-block;
+}
+
+.Selector span {
+    margin-right: 10px;
+}
+
+.Selector select {
+    font-family: 'Roboto', sans-serif;
+    box-sizing: border-box;
+    padding: 5px;
+    background: var(--color-medium);
+    color: white;
+    border: 1px solid var(--color-light);
+    outline: 1px solid var(--color-light);
+    font-size: 14px;
+    line-height: 20px;
+    margin-right: 20px;
+    max-width: 200px;
+}
+
 /* Player Comparison */
 
 .PlayerMain__PlayerComparison {
@@ -66,6 +155,7 @@
 
 .PlayerComparison {
     display: inline-block;
+    vertical-align: top;
     background: var(--color-medium);
     margin: 10px;
     padding: 10px 20px;
@@ -73,6 +163,23 @@
 
 .PlayerComparison:nth-child(1) {
     margin-left: 0;
+}
+
+.PlayerComparison.NoData {
+    opacity: 0.25;
+}
+
+.PlayerComparison .Remove {
+    font-family: 'Roboto', sans-serif;
+    font-weight: bold;
+    color: var(--color-red);
+    float: right;
+    margin-top: 12px;
+}
+
+.PlayerComparison .Remove:hover {
+    cursor: pointer;
+    color: white;
 }
 
 .PlayerComparison .Percentage span {
@@ -92,4 +199,42 @@
     opacity: 0.5;
 }
 
+.PlayerComparisonInput input {
+    display: block;
+    margin: 10px 0;
+}
 
+.PlayerComparisonInput input[type="text"] {
+    padding: 5px;
+}
+
+.PlayerComparisonInput input[type="button"] {
+    background: var(--color-futsal);
+    color: var(--color-dark);
+    border: 1px solid var(--color-light);
+    outline: 1px solid var(--color-light);
+    border-radius: 5px;
+    padding: 5px;
+    font-family: 'Quantico', sans-serif;
+}
+
+.PlayerComparisonInput input[type="button"]:hover {
+    background: white;
+    cursor: pointer;
+}
+
+/* Compare Kicks */
+
+.KickLegend {
+    display: inline-block;
+    margin: 10px auto;
+}
+
+.KickLegend span {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.KickLegend span:nth-child(1) {
+    font-weight: normal;
+}

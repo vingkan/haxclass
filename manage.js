@@ -89,14 +89,18 @@ if (script === "download_summaries") {
         const val = snap.val() || {};
         const testData = JSON.stringify(val, null, 2);
         const n = Object.keys(val).length;
-        fs.writeFileSync("./hub/summary_test_data.json", testData);
+        fs.writeFileSync("./mock/summary_test_data.json", testData);
         console.log(`Successfully downloaded ${n} summaries.`);
         process.exit(0);
     });
 }
 
 if (script === "download_player") {
-    const playerName = "Vinesh";
+    if (process.argv.length < 4) {
+        console.log("No player name specified.");
+        process.exit(0);
+    }
+    const playerName = process.argv[3];
     const fromRef = db.ref("kick").orderByChild("fromName").equalTo(playerName);
     const toRef = db.ref("kick").orderByChild("toName").equalTo(playerName);
     const saveQuery = (ref, type) => {
@@ -105,7 +109,7 @@ if (script === "download_player") {
                 const val = snap.val() || {};
                 const n = Object.keys(val).length;
                 const data = JSON.stringify(val, null, 2);
-                fs.writeFileSync(`./hub/player_test_data_${type}_kicks.json`, data);
+                fs.writeFileSync(`./mock/player_test_data_kicks_${type}_${playerName}.json`, data);
                 resolve(`Successfully downloaded ${n} kicks ${type} ${playerName}.`);
             }).catch((err) => {
                 resolve(`Failed to download kicks ${type} ${playerName}.`);
