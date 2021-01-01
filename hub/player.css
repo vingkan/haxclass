@@ -126,6 +126,7 @@
 
 .Selector {
     display: inline-block;
+    margin: 10px 0;
 }
 
 .Selector span {

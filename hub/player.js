@@ -353,8 +353,30 @@ function PlayerComparisonInput(props) {
     );
 }
 
+function Selector(props) {
+    return (
+        <div className="Selector">
+            <span>{props.label}</span>
+            <select onChange={(e) => {
+                props.onSelect(e.target.value);
+            }}>
+                {props.options.map((value) => {
+                    const isSelected = value === props.selected;
+                    return (
+                        <option
+                            value={value}
+                            selected={isSelected}
+                        >{value}</option>
+                    );
+                })}
+            </select>
+        </div>
+    );
+}
+
 function PlayerMain(props) {
     const [loading, setLoading] = React.useState(false);
+    const stadium = props.stadium || {};
     return (
         <div className={`PlayerMain__Container ${loading ? "Loading" : ""}`}>
             <div className="Loader">
@@ -362,38 +384,18 @@ function PlayerMain(props) {
             </div>
             <section>
                 <h1>Player Analytics</h1>
-                <div className="Selector">
-                    <span>Stadium:</span>
-                    <select onChange={(e) => {
-                        props.setStadium(e.target.value);
-                    }}>
-                        {props.stadiumChoices.map((stadiumName) => {
-                            const isSelected = stadiumName === props.stadium.stadium;
-                            return (
-                                <option
-                                    value={stadiumName}
-                                    selected={isSelected}
-                                >{stadiumName}</option>
-                            );
-                        })}
-                    </select>
-                </div>
-                <div className="Selector">
-                    <span>Compare Matches:</span>
-                    <select onChange={(e) => {
-                        props.setComparisonMode(e.target.value);
-                    }}>
-                        {props.comparisonChoices.map((compMode) => {
-                            const isSelected = compMode === props.comparisonMode;
-                            return (
-                                <option
-                                    value={compMode}
-                                    selected={isSelected}
-                                >{compMode}</option>
-                            );
-                        })}
-                    </select>
-                </div>
+                <Selector
+                    label="Stadium:"
+                    options={props.stadiumChoices}
+                    selected={stadium.stadium}
+                    onSelect={props.setStadium}
+                />
+                <Selector
+                    label="Compare Matches:"
+                    options={props.comparisonChoices}
+                    selected={props.comparisonMode}
+                    onSelect={props.setComparisonMode}
+                />
             </section>
             <section>
                 <h2>Compare Stats</h2>
@@ -416,22 +418,12 @@ function PlayerMain(props) {
             </section>
             <section>
                 <h2>Compare Kicks</h2>
-                <div className="Selector">
-                    <span>Show Kicks:</span>
-                    <select onChange={(e) => {
-                        props.setKickMode(e.target.value);
-                    }}>
-                        {props.kickModeChoices.map((kickMode) => {
-                            const isSelected = kickMode === props.kickMode;
-                            return (
-                                <option
-                                    value={kickMode}
-                                    selected={isSelected}
-                                >{kickMode}</option>
-                            );
-                        })}
-                    </select>
-                </div>
+                <Selector
+                    label="Show Kicks:"
+                    options={props.kickModeChoices}
+                    selected={props.kickMode}
+                    onSelect={props.setKickMode}
+                />
                 <div className="KickLegend">
                     <span>Players:</span>
                     {props.players.map((p) => {
