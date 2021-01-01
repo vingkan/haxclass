@@ -258,14 +258,13 @@ function Field(props) {
                     );
                 })}
                 {kicks.map((kick) => {
-                    const oppGoal = kick.fromTeam === "red" ? gpBlue : gpRed;
                     return (
                         <line
                             className={`shot goal`}
                             x1={toX(kick.fromX)}
                             y1={toY(kick.fromY)}
-                            x2={toX(oppGoal.mid.x)}
-                            y2={toY(oppGoal.mid.y)}
+                            x2={toX(kick.toX)}
+                            y2={toY(kick.toY)}
                             stroke={kick.color}
                         />
                     );
@@ -576,22 +575,45 @@ function filterKicksByLastN(nMatches) {
     };
 }
 
-function makeKickOffensive(kick) {
+function getOpposingGoal(team, stadium) {
+    if (!stadium || !stadium.goalposts) {
+        return null;
+    }
+    const hasGoalPosts = stadium.goalposts[TEAMS.Red] && stadium.goalposts[TEAMS.Blue];
+    if (!hasGoalPosts) {
+        return null;
+    }
+    return team === "red" ? stadium.goalposts[TEAMS.Blue] : stadium.goalposts[TEAMS.Red];
+}
+
+function makeKickOffensive(kick, stadium) {
     const reflectX = kick.fromTeam === "red" ? 1 : -1;
-    return {
+    let res = {
         ...kick,
         fromX: reflectX * kick.fromX,
         fromTeam: "red"
     };
+    const oppGoal = getOpposingGoal("red", stadium);
+    if (oppGoal) {
+        res.toX = oppGoal.mid.x;
+        res.toY = oppGoal.mid.y;
+    }
+    return res;
 }
 
-function makeKickDefensive(kick) {
+function makeKickDefensive(kick, stadium) {
     const reflectX = kick.toTeam === "red" ? 1 : -1;
-    return {
+    let res = {
         ...kick,
         fromX: reflectX * kick.fromX,
         fromTeam: "blue"
     };
+    const oppGoal = getOpposingGoal("blue", stadium);
+    if (oppGoal) {
+        res["toX"] = oppGoal.mid.x;
+        res["toY"] = oppGoal.mid.y;
+    }
+    return res;
 }
 
 function filterKicksForGoalsScored(allKickRes, props) {
@@ -599,7 +621,7 @@ function filterKicksForGoalsScored(allKickRes, props) {
         return Object.keys(kickMap).reduce((agg, key) => {
             const kick = kickMap[key];
             if (kick.type === "goal" || kick.type === "error") {
-                agg[key] = makeKickOffensive(kick);
+                agg[key] = makeKickOffensive(kick, props.stadium);
             }
             return agg;
         }, {});
@@ -620,7 +642,7 @@ function filterKicksForShotsTaken(allKickRes, props) {
         return Object.keys(kickMap).reduce((agg, key) => {
             const kick = kickMap[key];
             if (kick.type === "goal" || kick.type === "error" || kick.type === "save") {
-                agg[key] = makeKickOffensive(kick);
+                agg[key] = makeKickOffensive(kick, props.stadium);
             }
             return agg;
         }, {});
@@ -641,7 +663,7 @@ function filterKicksForGoalsAllowed(allKickRes, props) {
         return Object.keys(kickMap).reduce((agg, key) => {
             const kick = kickMap[key];
             if (kick.type === "error") {
-                agg[key] = makeKickDefensive(kick);
+                agg[key] = makeKickDefensive(kick, props.stadium);
             }
             return agg;
         }, {});
@@ -662,7 +684,7 @@ function filterKicksForShotsFaced(allKickRes, props) {
         return Object.keys(kickMap).reduce((agg, key) => {
             const kick = kickMap[key];
             if (kick.type === "save" || kick.type === "error") {
-                agg[key] = makeKickDefensive(kick);
+                agg[key] = makeKickDefensive(kick, props.stadium);
             }
             return agg;
         }, {});
@@ -811,6 +833,10 @@ loadStadiumData().then((res) => {
 }).catch(console.error);
 
 if (isLocal) {
-    addPlayerToComparison("pav");
-    addPlayerToComparison("Vinesh");
+    const setUpLocal = async () => {
+        await addPlayerToComparison("pav");
+        await addPlayerToComparison("Vinesh");
+        await setKickMode("Shots Taken");
+    }
+    setUpLocal();
 }
