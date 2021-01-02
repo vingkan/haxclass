@@ -12,6 +12,7 @@ const PLAYER_COLORS = [
 ];
 
 let allTimeKickMap = {};
+let allMatchMap = {};
 
 async function loadStadiumData() {
     const stadiumRes = await fetch(`../stadium/map_data.json`).catch(console.error);
@@ -67,10 +68,33 @@ function fetchPlayerKicksFromFirebase(playerName) {
                     agg[type] = kicks;
                     return agg;
                 }, {});
-                if (combineKicks(res).length === 0) {
+                const allKicks = combineKicks(res);
+                if (allKicks.length === 0) {
                     rejectAll(`No kicks found for player: ${playerName}`);
                 } else {
-                    resolveAll(res);
+                    const matchPromises = Object.keys(allKicks.reduce((agg, kick) => {
+                        agg[kick.match] = true;
+                        return agg;
+                    }, {})).filter((matchID) => !(matchID in allMatchMap)).map((matchID) => {
+                        return new Promise((resolveMatch, rejectMatch) => {
+                            db.ref(`match/${matchID}/score`).once("value", (snap) => {
+                                const scoreVal = snap.val() || {};
+                                allMatchMap[matchID] = scoreVal;
+                                resolveMatch(true);
+                            }).catch((err) => {
+                                console.log(`Error while fetching score for match: ${matchID}`);
+                                console.error(err);
+                                resolveMatch(false);
+                            });
+                        });
+                    });
+                    Promise.all(matchPromises).then((done) => {
+                        resolveAll(res);
+                    }).catch((err) => {
+                        console.log("Error while fetching scores for matches.");
+                        console.error(err);
+                        resolveAll(res);
+                    });
                 }
             }).catch(rejectAll);            
         }
@@ -110,13 +134,42 @@ function fetchPlayerKicksFromLocal(playerName) {
 
 function getPlayerAnalytics(kickRes) {
     let matchMap = {};
-    Object.keys(kickRes.to).forEach((k) => {
-        const kick = kickRes.to[k];
-        matchMap[kick["match"]] = true;
+    combineKicks(kickRes).forEach((kick) => {
+        const matchID = kick.match;
+        const saved = kick.saved;
+        if (!(matchID in matchMap)) {
+            matchMap[matchID] = { saved: 0 };
+        }
+        if (saved > matchMap[matchID].saved) {
+            matchMap[matchID] = kick;
+        }
     });
-    Object.keys(kickRes.from).forEach((k) => {
-        const kick = kickRes.from[k];
-        matchMap[kick["match"]] = true;
+    const matchStats = Object.keys(matchMap).reduce((agg, matchID) => {
+        const lastKick = matchMap[matchID];
+        const myTeam = kickRes.playerName === lastKick.fromName ? lastKick.fromTeam : lastKick.toTeam;
+        if (matchID in allMatchMap) {
+            const finalScore = allMatchMap[matchID];
+            const myTeamScore = myTeam === "red" ? finalScore.red : finalScore.blue;
+            const oppTeamScore = myTeam === "red" ? finalScore.blue : finalScore.red;
+            const scoreDiff = Math.abs(myTeamScore - oppTeamScore);
+            if (myTeamScore < oppTeamScore) {
+                agg.losses++;
+                agg.totalLossDiff -= scoreDiff;
+            } else {
+                agg.wins++;
+                agg.totalWinDiff += scoreDiff;
+            }
+            agg.pointsFor += myTeamScore;
+            agg.pointsAgainst += oppTeamScore;            
+        }
+        return agg;
+    }, {
+        wins: 0,
+        losses: 0,
+        totalWinDiff: 0,
+        totalLossDiff: 0,
+        pointsFor: 0,
+        pointsAgainst: 0,
     });
     // Shots faced = saves to + errors to.
     const statsTo = Object.keys(kickRes.to).map((k) => {
@@ -177,6 +230,7 @@ function getPlayerAnalytics(kickRes) {
     return {
         name: kickRes.playerName,
         matches: Object.keys(matchMap).length,
+        ...matchStats,
         ...statsTo,
         ...statsFrom,
     };
@@ -295,6 +349,33 @@ function TeammateStats(props) {
                 </ol>
                 <p>{topPassesFrom.length === 0 ? "None." : ""}</p>
             </div>
+        </div>
+    );
+}
+
+function RecordStats(props) {
+    // Record: Wins - Losses
+    // Score: Points For - Points Against
+    // Outscored by X vs Outscored opponents
+    // Points per game
+    // Win margin / Loss margin
+    const p = props.player;
+    return (
+        <div class="Stats TeammateStats">
+            <p className="Percentage">
+                <span className="Value">{toPct(p.wins, p.wins + p.losses)}</span>
+                <span className="Label">win percentage</span>
+                <span className="Definition">
+                    {plur(p.wins, "win")} vs {plur(p.losses, "loss", "losses")}
+                </span>
+            </p>
+            <p className="Percentage">
+                <span className="Value">{p.pointsFor - p.pointsAgainst}</span>
+                <span className="Label">score differential</span>
+                <span className="Definition">
+                    {plur(p.pointsFor, "point")} for - {plur(p.pointsAgainst, "point")} against
+                </span>
+            </p>
         </div>
     );
 }
@@ -957,6 +1038,7 @@ const statsModes = {
     "Shots/Saves": ShotsStats,
     "Passing": PassingStats,
     "Teammates": TeammateStats,
+    "Record": RecordStats,
 };
 
 const kickModes = {
@@ -1105,17 +1187,19 @@ const renderMain = (props) => {
 
 renderMain(comparison);
 
+const setUpLocal = async () => {
+    await setStadium("NAFL 1v1/2v2 Map v1");
+    await addPlayerToComparison("pav");
+    await addPlayerToComparison("Vinesh");
+    await setComparisonMode("Common Matches");
+    await setStatsMode("Shots/Saves");
+    await setKickMode("Shots Taken");
+}
+
 loadStadiumData().then((res) => {
     stadiumDataMap = res;
     setStadium("NAFL Official Map v1");
-}).catch(console.error);
-
-if (isLocal) {
-    const setUpLocal = async () => {
-        await addPlayerToComparison("pav");
-        await addPlayerToComparison("Vinesh");
-        // await setKickMode("Shots Taken");
-        // await setStatsMode("Teammates");
+    if (isLocal) {
+        setUpLocal();
     }
-    setUpLocal();
-}
+}).catch(console.error);
