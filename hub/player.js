@@ -938,8 +938,10 @@ const isOT = (time, timeLimit) => time > timeLimit;
 const comparisonModes = {
     "All-Time": filterKicksByStadium,
     "Common Matches": filterKicksByCommonMatches,
+    "Last Match": filterKicksByLastN(1),
     "Last 3 Matches": filterKicksByLastN(3),
     "Last 5 Matches": filterKicksByLastN(5),
+    "Last 10 Matches": filterKicksByLastN(10),
 };
 
 const gameModes = {
