@@ -31,7 +31,7 @@ html {
     color: white;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4 {
     font-family: 'Quantico', sans-serif;
     font-weight: bold;
     margin: 10px 0;
@@ -50,6 +50,11 @@ h2 {
 h3 {
     font-size: 18px;
     line-height: 24px;
+}
+
+h4 {
+    font-size: 16px;
+    line-height: 22px;
 }
 
 p {

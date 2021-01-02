@@ -128,10 +128,23 @@ function getPlayerAnalytics(kickRes) {
         if (kick.type === "save") {
             agg.saves++;
         }
+        if (kick.type === "steal") {
+            agg.stealsMade++;
+        }
+        if (kick.type === "pass") {
+            agg.passesReceived++;
+            if (!(kick.fromName in agg.passesFrom)) {
+                agg.passesFrom[kick.fromName] = 0;    
+            }
+            agg.passesFrom[kick.fromName]++;
+        }
         return agg;
     }, {
         saves: 0,
         shotsFaced: 0,
+        stealsMade: 0,
+        passesReceived: 0,
+        passesFrom: {},
     });
     // Shots taken = goals from + errors from + saves from.
     const statsFrom = Object.keys(kickRes.from).map((k) => {
@@ -143,10 +156,23 @@ function getPlayerAnalytics(kickRes) {
         if (kick.type === "goal" || kick.type === "error") {
             agg.goals++;
         }
+        if (kick.type === "pass" || kick.type === "steal") {
+            agg.passesAttempted++;
+        }
+        if (kick.type === "pass") {
+            agg.passesCompleted++;
+            if (!(kick.toName in agg.passesTo)) {
+                agg.passesTo[kick.toName] = 0;    
+            }
+            agg.passesTo[kick.toName]++;
+        }
         return agg;
     }, {
         goals: 0,
         shotsTaken: 0,
+        passesCompleted: 0,
+        passesAttempted: 0,
+        passesTo: {},
     });
     return {
         name: kickRes.playerName,
@@ -154,6 +180,123 @@ function getPlayerAnalytics(kickRes) {
         ...statsTo,
         ...statsFrom,
     };
+}
+
+function toPct(num, den) {
+    if (den > 0) {
+        const frac = num / den;
+        const pct = 100 * frac;
+        return `${pct.toFixed(1)}%`; 
+    } else {
+        return `0.0%`;
+    }
+}
+
+function toRatio(num, den, digits=4) {
+    if (num === 0) {
+        return `0.00`;
+    } else if (den > 0) {
+        const frac = num / den;
+        const before = `${frac}`.split(".")[0].length;
+        return `${frac.toFixed(digits - before)}`;
+    } else {
+        return `∞`;
+    }
+}
+
+function plur(n, s, p) {
+    const ps = p ? p : `${s}s`;
+    return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
+}
+
+function ShotsStats(props) {
+    const p = props.player;
+    return (
+        <div class="Stats ShotsStats">
+            <p className="Percentage">
+                <span className="Value">{toPct(p.goals, p.shotsTaken)}</span>
+                <span className="Label">shot percentage</span>
+                <span className="Definition">
+                    {plur(p.goals, "goal")} / {plur(p.shotsTaken, "shot")} taken
+                </span>
+            </p>
+            <p className="Percentage">
+                <span className="Value">{toPct(p.saves, p.shotsFaced)}</span>
+                <span className="Label">save percentage</span>
+                <span className="Definition">
+                    {plur(p.saves, "save")} / {plur(p.shotsFaced, "shot")} faced
+                </span>
+            </p>
+        </div>
+    );
+}
+
+function PassingStats(props) {
+    const p = props.player;
+    return (
+        <div class="Stats PassingStats">
+            <p className="Percentage">
+                <span className="Value">{toPct(p.passesCompleted, p.passesAttempted)}</span>
+                <span className="Label">pass completion rate</span>
+                <span className="Definition">
+                    {p.passesCompleted} comp. / {p.passesAttempted} att.
+                </span>
+            </p>
+            <p className="Percentage">
+                <span className="Value">{toRatio(p.passesAttempted, p.shotsTaken)}</span>
+                <span className="Label">pass/shoot ratio</span>
+                <span className="Definition">
+                    {p.passesAttempted} pass att. / {p.shotsTaken} shot att.
+                </span>
+            </p>
+        </div>
+    );
+}
+
+function sortRankMap(rankMap, sortFn, nLimit) {
+    return Object.keys(rankMap).map((key) => {
+        return {
+            key,
+            value: rankMap[key]
+        }
+    }).sort((a, b) => {
+        return sortFn(a, b);
+    }).filter((r, i) => {
+        return i < nLimit;
+    });
+}
+
+function TeammateStats(props) {
+    const p = props.player;
+    const nLimit = 3;
+    const topPassesTo = sortRankMap(p.passesTo, (a, b) => b.value - a.value, nLimit);
+    const topPassesFrom = sortRankMap(p.passesFrom, (a, b) => b.value - a.value, nLimit);
+    return (
+        <div class="Stats TeammateStats">
+            <div className="Ranking">
+                <h4>Passes To:</h4>
+                <ol>
+                    {topPassesTo.map((r) => {
+                        return (
+                            <li>{r.key} ({r.value})</li>
+                        );
+                    })}
+                </ol>
+                <p>{topPassesTo.length === 0 ? "None." : ""}</p>
+            </div>
+            <div className="Ranking">
+                <h4>Passes From:</h4>
+                <ol>
+                    {topPassesFrom.map((r) => {
+                        return (
+                            <li>{r.key} ({r.value})</li>
+                        );
+                    })}
+                </ol>
+                <p>{topPassesFrom.length === 0 ? "None." : ""}</p>
+            </div>
+        </div>
+    );
 }
 
 function makeArcPath(props) {
@@ -276,19 +419,6 @@ function Field(props) {
 
 function PlayerComparison(props) {
     const p = props.player;
-    const toPct = (num, den) => {
-        if (den > 0) {
-            const frac = num / den;
-            const pct = 100* frac;
-            return `${pct.toFixed(1)}%`; 
-        } else {
-            return `0.0%`;
-        }
-    };
-    const plur = (n, s, p) => {
-        const ps = p ? p : `${s}s`;
-        return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
-    }
     return (
         <div className={`PlayerComparison ${p.matches > 0 ? "HasData" : "NoData"}`}>
             <span
@@ -299,20 +429,7 @@ function PlayerComparison(props) {
             >x</span>
             <h3 style={{color: p.color}}>{p.name}</h3>
             <p>{plur(p.matches, "match", "matches")}</p>
-            <p className="Percentage">
-                <span className="Value">{toPct(p.goals, p.shotsTaken)}</span>
-                <span className="Label">shot percentage</span>
-                <span className="Definition">
-                    {plur(p.goals, "goal")} / {plur(p.shotsTaken, "shot")} taken
-                </span>
-            </p>
-            <p className="Percentage">
-                <span className="Value">{toPct(p.saves, p.shotsFaced)}</span>
-                <span className="Label">save percentage</span>
-                <span className="Definition">
-                    {plur(p.saves, "save")} / {plur(p.shotsFaced, "shot")} faced
-                </span>
-            </p>
+            {props.StatsComponent(props)}
         </div>
     );
 }
@@ -377,6 +494,13 @@ function Selector(props) {
 function PlayerMain(props) {
     const [loading, setLoading] = React.useState(false);
     const stadium = props.stadium || {};
+    const counts = props.kicks.reduce((agg, val) => {
+        if (!(val.username in agg)) {
+            agg[val.username] = 0;
+        }
+        agg[val.username]++;
+        return agg;
+    }, {});
     return (
         <div className={`PlayerMain__Container ${loading ? "Loading" : ""}`}>
             <div className="Loader">
@@ -384,18 +508,34 @@ function PlayerMain(props) {
             </div>
             <section>
                 <h1>Player Analytics</h1>
-                <Selector
-                    label="Stadium:"
-                    options={props.stadiumChoices}
-                    selected={stadium.stadium}
-                    onSelect={props.setStadium}
-                />
-                <Selector
-                    label="Compare Matches:"
-                    options={props.comparisonChoices}
-                    selected={props.comparisonMode}
-                    onSelect={props.setComparisonMode}
-                />
+                <div>
+                    <Selector
+                        label="Stadium:"
+                        options={props.stadiumChoices}
+                        selected={stadium.stadium}
+                        onSelect={props.setStadium}
+                    />
+                    <Selector
+                        label="Compare Matches:"
+                        options={props.comparisonChoices}
+                        selected={props.comparisonMode}
+                        onSelect={props.setComparisonMode}
+                    />
+                </div>
+                <div>
+                    <Selector
+                        label="Match State:"
+                        options={props.gameModeChoices}
+                        selected={props.gameMode}
+                        onSelect={props.setGameMode}
+                    />
+                    <Selector
+                        label="View Stats:"
+                        options={props.statsChoices}
+                        selected={props.statsMode}
+                        onSelect={props.setStatsMode}
+                    />
+                    </div>
             </section>
             <section>
                 <h2>Compare Stats</h2>
@@ -406,6 +546,7 @@ function PlayerMain(props) {
                                 key={i}
                                 index={i}
                                 player={p}
+                                StatsComponent={props.StatsComponent}
                                 onRemove={props.onRemovePlayer}
                             />
                         );
@@ -428,11 +569,12 @@ function PlayerMain(props) {
                     <span>Players:</span>
                     {props.players.map((p) => {
                         return (
-                            <span style={{color: p.color}}>{p.name}</span>
+                            <span style={{color: p.color}}>{p.name} ({counts[p.name]})</span>
                         );
                     })}
                 </div>
                 <Field stadium={props.stadium} kicks={props.kicks} />
+                <p>Kicks are reflected on the field so that the goal players are defending appears on the left and the goal they are attacking appears on the right.</p>
             </section>
         </div>
     );
@@ -483,8 +625,7 @@ function filterKicksByStadium(allKickRes, props) {
     }, {});
 }
 
-function filterKicksByCommonMatches(inKickRes, props) {
-    const allKickRes = filterKicksByStadium(inKickRes, props);
+function filterKicksByCommonMatches(allKickRes, props) {
     let matchUserCount = {};
     props.usernames.forEach((username) => {
         const kickRes = allKickRes[username];
@@ -522,8 +663,7 @@ function filterKicksByCommonMatches(inKickRes, props) {
 }
 
 function filterKicksByLastN(nMatches) {
-    return (inKickRes, props) => {
-        const allKickRes = filterKicksByStadium(inKickRes, props);
+    return (allKickRes, props) => {
         const filterKicks = (kickMap, recentMatches) => {
             return Object.keys(kickMap).reduce((agg, key) => {
                 const kick = kickMap[key];
@@ -567,6 +707,56 @@ function filterKicksByLastN(nMatches) {
     };
 }
 
+function filterKicksByScore(scoreFn) {
+    return (allKickRes, props) => {
+        const filterKicks = (kickMap) => {
+            return Object.keys(kickMap).reduce((agg, key) => {
+                const kick = kickMap[key];
+                const myTeamScore = kick.fromTeam === "red" ? kick.scoreRed : kick.scoreBlue;
+                const oppTeamScore = kick.fromTeam === "red" ? kick.scoreBlue : kick.scoreRed;
+                if (scoreFn(myTeamScore, oppTeamScore)) {
+                    agg[key] = kick;
+                }
+                return agg;
+            }, {});
+        };
+        const outKickRes = props.usernames.reduce((out, username) => {
+            const kickRes = allKickRes[username];
+            out[username] = {
+                playerName: kickRes.playerName,
+                to: filterKicks(kickRes.to),
+                from: filterKicks(kickRes.from)
+            }
+            return out;
+        }, {});
+        return outKickRes;
+    };
+}
+
+function filterKicksByTime(timeFn) {
+    return (allKickRes, props) => {
+        const filterKicks = (kickMap) => {
+            return Object.keys(kickMap).reduce((agg, key) => {
+                const kick = kickMap[key];
+                if (timeFn(kick.time, kick.timeLimit)) {
+                    agg[key] = kick;
+                }
+                return agg;
+            }, {});
+        };
+        const outKickRes = props.usernames.reduce((out, username) => {
+            const kickRes = allKickRes[username];
+            out[username] = {
+                playerName: kickRes.playerName,
+                to: filterKicks(kickRes.to),
+                from: filterKicks(kickRes.from)
+            }
+            return out;
+        }, {});
+        return outKickRes;
+    };
+}
+
 function getOpposingGoal(team, stadium) {
     if (!stadium || !stadium.goalposts) {
         return null;
@@ -582,8 +772,7 @@ function makeKickOffensive(kick, stadium) {
     const reflectX = kick.fromTeam === "red" ? 1 : -1;
     let res = {
         ...kick,
-        fromX: reflectX * kick.fromX,
-        fromTeam: "red"
+        fromX: reflectX * kick.fromX
     };
     const oppGoal = getOpposingGoal("red", stadium);
     if (oppGoal) {
@@ -597,8 +786,7 @@ function makeKickDefensive(kick, stadium) {
     const reflectX = kick.toTeam === "red" ? 1 : -1;
     let res = {
         ...kick,
-        fromX: reflectX * kick.fromX,
-        fromTeam: "blue"
+        fromX: reflectX * kick.fromX
     };
     const oppGoal = getOpposingGoal("blue", stadium);
     if (oppGoal) {
@@ -629,7 +817,7 @@ function filterKicksForGoalsScored(allKickRes, props) {
     }, {});
 }
 
-function filterKicksForShotsTaken(allKickRes, props) {
+function filterShotsTaken(allKickRes, props) {
     const filterKicks = (kickMap) => {
         return Object.keys(kickMap).reduce((agg, key) => {
             const kick = kickMap[key];
@@ -692,11 +880,60 @@ function filterKicksForShotsFaced(allKickRes, props) {
     }, {});
 }
 
+function filterKicksForPassAttempts(allKickRes, props) {
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.type === "pass" || kick.type === "steal") {
+                agg[key] = makeKickOffensive(kick, null);
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: {},
+            from: filterKicks(kickRes.from)
+        }
+        return out;
+    }, {});
+}
+
+function filterKicksForSteals(allKickRes, props) {
+    const filterKicks = (kickMap) => {
+        return Object.keys(kickMap).reduce((agg, key) => {
+            const kick = kickMap[key];
+            if (kick.type === "steal") {
+                agg[key] = makeKickDefensive(kick, null);
+            }
+            return agg;
+        }, {});
+    };
+    return props.usernames.reduce((out, username) => {
+        const kickRes = allKickRes[username];
+        out[username] = {
+            playerName: kickRes.playerName,
+            to: filterKicks(kickRes.to),
+            from: {}
+        }
+        return out;
+    }, {});
+}
+
 const onLocal = document.location.hostname === "localhost"
 const forcedProd = document.location.href.indexOf("l=false") > -1;
 const isLocal = onLocal && !forcedProd;
 const fetchPlayer = isLocal ? fetchPlayerKicksFromLocal : fetchPlayerKicksFromFirebase;
 console.log(`Fetching player data from ${isLocal ? "local" : "Firebase"}.`);
+
+const isAny = () => true;
+const isWinning = (us, them) => us > them;
+const isLosing = (us, them) => us < them;
+const isTied = (us, them) => us === them;
+const isRegulation = (time, timeLimit) => time <= timeLimit;
+const isOT = (time, timeLimit) => time > timeLimit;
 
 const comparisonModes = {
     "All-Time": filterKicksByStadium,
@@ -705,16 +942,35 @@ const comparisonModes = {
     "Last 5 Matches": filterKicksByLastN(5),
 };
 
+const gameModes = {
+    "Entire Match": filterKicksByScore(isAny),
+    "While Winning": filterKicksByScore(isWinning),
+    "While Losing": filterKicksByScore(isLosing),
+    "While Tied": filterKicksByScore(isTied),
+    "In Regulation": filterKicksByTime(isRegulation),
+    "In Overtime": filterKicksByTime(isOT),
+};
+
+const statsModes = {
+    "Shots/Saves": ShotsStats,
+    "Passing": PassingStats,
+    "Teammates": TeammateStats,
+};
+
 const kickModes = {
     "Goals Scored": filterKicksForGoalsScored,
-    "Shots Taken": filterKicksForShotsTaken,
+    "Shots Taken": filterShotsTaken,
     "Goals Allowed": filterKicksForGoalsAllowed,
     "Shots Faced": filterKicksForShotsFaced,
+    "Passes Attempted": filterKicksForPassAttempts,
+    "Steals Made": filterKicksForSteals,
 };
 
 let stadiumDataMap = {};
 let comparison = {
     comparisonMode: "All-Time",
+    gameMode: "Entire Match",
+    statsMode: "Shots/Saves",
     kickMode: "Goals Scored",
     usernames: [],
     stadium: {}
@@ -724,21 +980,35 @@ const setStadium = async (stadiumName) => {
     if (stadiumName in stadiumDataMap) {
         comparison.stadium = stadiumDataMap[stadiumName];
         renderMain(comparison);
-    }    
+    }
 }
 
 const setComparisonMode = (mode) => {
     if (mode in comparisonModes) {
         comparison.comparisonMode = mode;
         renderMain(comparison);
-    }    
+    }
+}
+
+const setGameMode = (mode) => {
+    if (mode in gameModes) {
+        comparison.gameMode = mode;
+        renderMain(comparison);
+    }
+}
+
+const setStatsMode = (mode) => {
+    if (mode in statsModes) {
+        comparison.statsMode = mode;
+        renderMain(comparison);
+    }
 }
 
 const setKickMode = (mode) => {
     if (mode in kickModes) {
         comparison.kickMode = mode;
         renderMain(comparison);
-    }    
+    }
 }
 
 const addPlayerToComparison = (username) => {
@@ -769,27 +1039,34 @@ const removePlayerFromComparison = (index) => {
 const renderMain = (props) => {
     const stadiumChoices = Object.keys(stadiumDataMap);
     const comparisonModeChoices = Object.keys(comparisonModes);
+    const gameModeChoices = Object.keys(gameModes);
+    const statsModeChoices = Object.keys(statsModes);
     const kickModeChoices = Object.keys(kickModes);
+    const StatsComponent = statsModes[comparison.statsMode];
     const filterComparisonFn = comparisonModes[props.comparisonMode];
     const filterKicksFn = kickModes[props.kickMode];
-    const allComparisonKicks = filterComparisonFn(allTimeKickMap, props);
-    const allFilteredKicks = filterKicksFn(allComparisonKicks, props);
+    const filterGameFn = gameModes[props.gameMode];
+    const allStadiumKicks = filterKicksByStadium(allTimeKickMap, props);
+    const allComparisonKicks = filterComparisonFn(allStadiumKicks, props);
+    const allDataKicks = filterGameFn(allComparisonKicks, props);
+    const allDisplayKicks = filterKicksFn(allDataKicks, props);
     let players = [];
     let kicks = [];
     props.usernames.forEach((username, i) => {
         const defaultKickColor = `rgba(${PLAYER_COLORS[i]}, 0.90)`;
-        const comparisonKicks = allComparisonKicks[username] || returnEmptyKickRes(username);
-        const playerStats = getPlayerAnalytics(comparisonKicks);
+        const playerKicks = allDataKicks[username] || returnEmptyKickRes(username);
+        const playerStats = getPlayerAnalytics(playerKicks);
         players.push({
             color: defaultKickColor,
             ...playerStats
         });
-        const filteredKicks = allFilteredKicks[username] || returnEmptyKickRes(username);
+        const displayKicks = allDisplayKicks[username] || returnEmptyKickRes(username);
         let kickCount = 0;
-        const kicksToAdd = combineKicks(filteredKicks);
+        const kicksToAdd = combineKicks(displayKicks);
         kicksToAdd.forEach((kick) => {
             kicks.push({
                 color: defaultKickColor,
+                username,
                 ...kick
             });
         });
@@ -799,9 +1076,16 @@ const renderMain = (props) => {
         return (
             <PlayerMain
                 players={players}
+                statsChoices={statsModeChoices}
+                statsMode={comparison.statsMode}
+                setStatsMode={setStatsMode}
+                StatsComponent={StatsComponent}
                 comparisonMode={props.comparisonMode}
                 comparisonChoices={comparisonModeChoices}
                 setComparisonMode={setComparisonMode}
+                gameMode={comparison.gameMode}
+                gameModeChoices={gameModeChoices}
+                setGameMode={setGameMode}
                 stadium={props.stadium || {}}
                 stadiumChoices={stadiumChoices}
                 setStadium={setStadium}
@@ -828,7 +1112,8 @@ if (isLocal) {
     const setUpLocal = async () => {
         await addPlayerToComparison("pav");
         await addPlayerToComparison("Vinesh");
-        await setKickMode("Shots Taken");
+        // await setKickMode("Shots Taken");
+        // await setStatsMode("Teammates");
     }
     setUpLocal();
 }

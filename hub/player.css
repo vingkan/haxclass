@@ -127,23 +127,23 @@
 .Selector {
     display: inline-block;
     margin: 10px 0;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    line-height: 20px;
 }
 
 .Selector span {
-    margin-right: 10px;
+    margin-right: 15px;
 }
 
 .Selector select {
-    font-family: 'Roboto', sans-serif;
     box-sizing: border-box;
     padding: 5px;
     background: var(--color-medium);
     color: white;
     border: 1px solid var(--color-light);
     outline: 1px solid var(--color-light);
-    font-size: 14px;
-    line-height: 20px;
-    margin-right: 20px;
+    margin-right: 15px;
     max-width: 200px;
 }
 
@@ -222,6 +222,18 @@
 .PlayerComparisonInput input[type="button"]:hover {
     background: white;
     cursor: pointer;
+}
+
+.Ranking ol {
+    margin-inline-start: -20px;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.Ranking h4 {
+    font-size: 16px;
+    line-height: 16px;
+    margin-bottom: 0;
 }
 
 /* Compare Kicks */
