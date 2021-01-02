@@ -569,7 +569,7 @@ function PlayerMain(props) {
                     <span>Players:</span>
                     {props.players.map((p) => {
                         return (
-                            <span style={{color: p.color}}>{p.name} ({counts[p.name]})</span>
+                            <span style={{color: p.color}}>{p.name} ({counts[p.name] || 0})</span>
                         );
                     })}
                 </div>
