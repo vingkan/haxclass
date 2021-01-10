@@ -94,12 +94,27 @@ class Summary extends React.Component {
     constructor(props) {
         super(props);
     }
+    componentDidMount() {
+        const s = this.props.summary;
+        const el = ReactDOM.findDOMNode(this);
+        const btn = el.querySelector(".Summary__ID");
+        const clip = new ClipboardJS(btn);
+        clip.on("success", (e) => {
+            btn.innerText = "Copied!";
+            btn.classList.add("Copied");
+            setTimeout(() => {
+                btn.innerText = "ID";
+                btn.classList.remove("Copied");
+            }, 3000);
+            e.clearSelection();
+        });
+        clip.on("error", (e) => {
+            prompt("Match ID:", s.id);
+        });
+    }
     render() {
         const s = this.props.summary;
-        const getId = (e) => {
-            prompt("Match ID:", s.id);
-        };
-        const maxLineLength = 50;
+        const maxLineLength = 40;
         const urlReplay = `./replay.html?l=${this.props.isLocal}&m=${s.id}`;
         const urlJSON = `./json.html?l=${this.props.isLocal}&m=${s.id}`;
         const urlCSV = `./csv.html?l=${this.props.isLocal}&m=${s.id}`;
@@ -118,7 +133,7 @@ class Summary extends React.Component {
                         <span className="Summary__Score">{winner} {s.scoreRed} - {s.scoreBlue}</span>
                         <span className="Summary__Duration">{getDurationString(s.time)}</span>
                     </h3>
-                    <a className="Summary__ID Button__Round" onClick={getId}>ID</a>
+                    <a className="Summary__ID Button__Round" data-clipboard-text={s.id}>ID</a>
                     <a className="Summary__Replay Button__Round" target="_blank" href={urlReplay}>Replay</a>
                     <a className="Summary__JSON Button__Round" target="_blank" href={urlJSON}>JSON</a>
                     <a className="Summary__CSV Button__Round" target="_blank" href={urlCSV}>CSV</a>
