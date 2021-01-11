@@ -23,6 +23,10 @@ function toClock(secs) {
     return `${leftpad(Math.floor(s / 60))}:${leftpad(s % 60)}`;
 }
 
+function limitChars(s, c) {
+    return s.length < c ? s : `${s.substr(0, c)}...`;
+}
+
 function toList(map) {
     return Object.keys(map).map((k) => map[k]);
 }
@@ -31,6 +35,7 @@ function initializeData() {
     return {
         nEvents: 0,
         stadium: null,
+        isFinal: false,
         isOT: false,
         time: 0,
         timeLimit: 0,
@@ -43,6 +48,7 @@ function initializeData() {
             red: {},
             blue: {},
         },
+        kicks: [],
         gainedPossessionAt: 0,
         possessor: null,
     };
@@ -61,7 +67,7 @@ function initializePlayer(playerMap, team, name) {
             shotsTaken: 0,
             shotsFaced: 0,
             savesMade: 0,
-            errorsAllowed: 0,
+            ownGoals: 0,
             passesAttempted: 0,
             passesCompleted: 0,
             passesReceived: 0,
@@ -72,12 +78,20 @@ function initializePlayer(playerMap, team, name) {
     }
 }
 
-function reduceLive(d, v) {
+
+// https://coolors.co/59cd90-d90368-3fa7d6-f79d84-ffd400
+const PLAYER_COLORS = [
+    `217, 3, 104`,
+    `63, 167, 214`,
+    `255, 212, 0`,
+    `89, 205, 144`,
+];
+
+function reduceLive(d, v, stadiums) {
+    const stadium = d.stadium ? stadiums[d.stadium] || null : null;
     d.nEvents++;
     let fromPlayer = initializePlayer(d.players, v.fromTeam, v.fromName);
     let toPlayer = initializePlayer(d.players, v.toTeam, v.toName);
-    // Update stadium.
-    d.stadium = v.stadium ? v.stadium : d.stadium;
     // Update score and time.
     d.score.red = v.scoreRed ? v.scoreRed : d.score.red;
     d.score.blue = v.scoreBlue ? v.scoreBlue : d.score.blue;
@@ -102,22 +116,56 @@ function reduceLive(d, v) {
         fromPlayer.shotsTaken++;
         fromPlayer.goalsScored++;
     }
+    // Only use errors to count offensive stats and correct defensive saves.
+    // Use own goals to count defensive errors, as an error is always followed by an own goal,
+    // but an own goal is not always preceded by an error.
     if (v.type === "error") {
-        fromPlayer.shotsTaken++;
         fromPlayer.goalsScored++;
-        toPlayer.shotsFaced++;
-        toPlayer.errorsAllowed++;
         // Undo the effects of the previous save, as if it never happened.
         if (v.correction) {
-            fromPlayer.shotsTaken--;
+            // Decrement shotsFaced so that own goal can increment it.
             toPlayer.shotsFaced--;
             toPlayer.savesMade--;
         }
+    }
+    if (v.type === "own_goal") {
+        fromPlayer.shotsFaced++;
+        fromPlayer.ownGoals++;
     }
     if (v.type === "save") {
         fromPlayer.shotsTaken++;
         toPlayer.shotsFaced++;
         toPlayer.savesMade++;
+    }
+    // Save kicks to display.
+    if (stadium) {
+        const rgb = v.fromTeam === "red" ? `217, 3, 104` : `63, 167, 214`;
+        const gpRed = stadium.goalposts[TEAMS.Red];
+        const gpBlue = stadium.goalposts[TEAMS.Blue];
+        if (v.type === "goal" || v.type === "error") {
+            const gp = v.fromTeam === "red" ? gpBlue : gpRed;
+            d.kicks.push({
+                color: `rgba(${rgb}, 0.90)`,
+                ...v,
+                toX: gp.mid.x,
+                toY: gp.mid.y,
+            });
+        }
+        if (v.type === "own_goal") {
+            const gp = v.fromTeam === "red" ? gpRed : gpBlue;
+            d.kicks.push({
+                color: `rgba(${rgb}, 0.90)`,
+                ...v,
+                toX: gp.mid.x,
+                toY: gp.mid.y,
+            });
+        }
+        if (v.type === "save") {
+            d.kicks.push({
+                color: `rgba(${rgb}, 0.90)`,
+                ...v,
+            });
+        }
     }
     // Compute time of possession.
     if (fromPlayer) {
@@ -139,10 +187,12 @@ function reduceLive(d, v) {
     if (toPlayer) {
         d.players[toPlayer.team][toPlayer.name] = toPlayer;
     }
-    if (v.type === "victory") {
-        console.log(v);
+    if (v.type === "start") {
+        d.stadium = v.stadium;
     }
-    d.stadium = "NAFL Official Map v1"
+    if (v.type === "victory") {
+        d.isFinal = true;
+    }
     return d;
 }
 
@@ -155,7 +205,7 @@ function tableOffense(playerMap) {
     ];
     const rows = toList(playerMap).map((p) => {
         return {
-            name: p.name,
+            name: limitChars(p.name, 12),
             goalsScored: p.goalsScored,
             shotsTaken: p.shotsTaken,
             passesCompleted: p.passesCompleted,
@@ -180,12 +230,14 @@ function tableOffense(playerMap) {
 function tableDefense(playerMap) {
     const headers = [
         { key: "name", name: "Player" },
+        { key: "ownGoals", name: "Own Goals" },
         { key: "saves", name: "Save Attempts" },
         { key: "stealsTaken", name: "Steals" },
     ];
     const rows = toList(playerMap).map((p) => {
         return {
-            name: p.name,
+            name: limitChars(p.name, 12),
+            ownGoals: p.ownGoals,
             savesMade: p.savesMade,
             shotsFaced: p.shotsFaced,
             stealsTaken: p.stealsTaken,
@@ -368,38 +420,58 @@ class LiveMain extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            isLoading: false,
+            isLoading: props.stadiums ? false : true,
             data: initializeData(),
-            stadiums: {},
+            ref: null,
+            listener: null,
+            interval: null,
         };
         if (props.streamName && props.streamId) {
-            this.setState({ isLoading: true });
-            loadStadiumData().then((stadiums) => {
-                this.setState({ isLoading: false, stadiums });
-            }).catch((err) => {
-                this.setState({ isLoading: false });
-                console.log("Error loading stadium data:");
-                console.error(err);
-            });
-            db.ref(`live/${props.streamName}/${props.streamId}`).on("child_added", (snap) => {
+            let currentData = this.state.data;
+            let queue = [];
+            const ref = db.ref(`live/${props.streamName}/${props.streamId}`).orderByKey();
+            const listener = ref.on("child_added", (snap) => {
                 const val = snap.val();
-                const oldData = this.state.data;
-                const nextData = reduceLive({ ...oldData }, val);
-                this.setState({ data: nextData });
+                queue.push(val);
             });
+            const interval = setInterval(() => {
+                if(queue.length > 0) {
+                    const val = queue.shift();
+                    currentData = reduceLive({ ...currentData }, val, props.stadiums);
+                    this.setState({ data: currentData });
+                }
+            }, 5);
+            this.setState({ ref, listener, interval });
+        }
+    }
+    componentWillUnmount() {
+        if (this.state.ref && this.state.listener) {
+            this.state.ref.off("child_added", this.state.listener);
+        }
+        if (this.state.interval) {
+            clearInterval(this.state.interval);
         }
     }
     render() {
         const isLoading = this.state.isLoading;
         const hasStream = this.props.streamName && this.props.streamId;
         const d = this.state.data;
-        const stadium = d.stadium ? this.state.stadiums[d.stadium] || {} : {};
-        let noStreamEl;
+        const stadium = d.stadium ? this.props.stadiums[d.stadium] || {} : {};
+        const hasStadium = Object.keys(stadium).length > 0;
+        let problemEl;
+        let message;
         if (!hasStream) {
-            noStreamEl = <p>No stream name/ID provided.</p>
+            message = "No stream name/ID provided.";
+        } else if (!d.stadium) {
+            message = "No stadium provided from match livestream.";
+        } else if (!(d.stadium in this.props.stadiums)) {
+            message = `Stadium map data not available for: ${d.stadium}`;
+        }
+        if (message) {
+            problemEl = <p>{message}</p>
         }
         return (
-            <div className={`LiveMain__Container ${isLoading ? "Loading" : ""}`}>
+            <div key={Date.now()} className={`LiveMain__Container ${isLoading ? "Loading" : ""}`}>
                 <div className="Loader">
                     <div class="lds"><div></div><div></div><div></div></div>
                 </div>
@@ -407,9 +479,10 @@ class LiveMain extends React.Component {
                     <h1>Live Analytics</h1>
                     <div className="GameBox">
                         <div className="ClockBox">
-                            <span className="BoxIcon Green">{d.isOT ? "OT" : "Reg"}</span>
-                            <span className="Clock">{toClock(d.time)}</span>
+                            <span className="BoxIcon Green">{d.isFinal ? "Final" : "Live"}</span>
+                            <span className="Clock">{toClock(d.time)} {d.isOT ? "OT" : ""}</span>
                         </div>
+                        <span>{d.stadium ? d.stadium : "No Stadium"}</span>
                         <div className="ScoreBox">
                             <span className="BoxIcon Red">Red</span>
                             <span className="Score">{d.score.red} - {d.score.blue}</span>
@@ -417,8 +490,11 @@ class LiveMain extends React.Component {
                         </div>
                     </div>
                 </section>
-                { noStreamEl }
-                <Field stadium={stadium} kicks={[]} />
+                { problemEl }
+                <div className="CardField" style={{display: hasStadium ? "block" : "none"}}>
+                    <h3>Shots on Goal</h3>
+                    <Field stadium={stadium} kicks={d.kicks} />
+                </div>
                 <section>
                     <div className="Halves">
                         <div className="Half">
@@ -449,10 +525,19 @@ class LiveMain extends React.Component {
                         </div>
                     </div>
                 </section>
-                <p>{plur(d.nEvents, "event")}</p>
+                <div className="CardFake">
+                    <p>Processed {plur(d.nEvents, "event")}.</p>
+                </div>
             </div>
         );
     }
+}
+
+function renderMain(streamName, streamId, stadiums) {
+    const mainEl = document.getElementById("main");
+    const mainRe = <LiveMain streamName={streamName} streamId={streamId} stadiums={stadiums} />
+    ReactDOM.unmountComponentAtNode(mainEl);
+    ReactDOM.render(mainRe, mainEl);
 }
 
 // This one came before it: live/live/-MQjwDHJP15yYxzlXUOz
@@ -460,17 +545,29 @@ class LiveMain extends React.Component {
 // const streamName = "live";
 // const streamId = "-MQjk-mRG7Rsko0XBXLc";
 
-
 const url = document.location.href;
 const streamName = getParam(url, "n");
-const streamId = getParam(url, "i");
+let streamId = getParam(url, "i");
 
-const getMain = () => {
-    return (
-        <LiveMain
-            streamName={streamName}
-            streamId={streamId}
-        />
-    );
+function start(stadiums) {
+    if (!streamName) {
+        renderMain(null, null, stadiums);
+    } else if (streamId) {
+        renderMain(streamName, streamId, stadiums);    
+    } else {
+        db.ref(`live/${streamName}`).orderByKey().limitToLast(1).on("child_added", (snap) => {
+            if (snap.key !== streamId) {
+                streamId = snap.key;
+                renderMain(streamName, streamId, stadiums);
+            }
+        });    
+    }
 }
-ReactDOM.render(getMain(), document.getElementById("main"));
+
+renderMain(null, null, null);
+loadStadiumData().then((stadiums) => {
+    start(stadiums);
+}).catch((err) => {
+    console.log("Error loading stadium data:");
+    console.error(err);
+});

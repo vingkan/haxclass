@@ -45,8 +45,15 @@ li {
     margin-bottom: 7.5px;
 }
 
-.LiveMain__Container .Field + section {
+.LiveMain__Container .CardField + section {
     margin-top: 0;
+}
+
+.CardField h3 {
+    position: absolute;
+    margin-top: 5px;
+    margin-left: 5px;
+    opacity: 0.90;
 }
 
 .Halves {
