@@ -205,7 +205,7 @@ function tableOffense(playerMap) {
     ];
     const rows = toList(playerMap).map((p) => {
         return {
-            name: limitChars(p.name, 12),
+            name: limitChars(p.name, 20),
             goalsScored: p.goalsScored,
             shotsTaken: p.shotsTaken,
             passesCompleted: p.passesCompleted,
@@ -236,7 +236,7 @@ function tableDefense(playerMap) {
     ];
     const rows = toList(playerMap).map((p) => {
         return {
-            name: limitChars(p.name, 12),
+            name: limitChars(p.name, 20),
             ownGoals: p.ownGoals,
             savesMade: p.savesMade,
             shotsFaced: p.shotsFaced,
@@ -458,6 +458,7 @@ class LiveMain extends React.Component {
         const d = this.state.data;
         const stadium = d.stadium ? this.props.stadiums[d.stadium] || {} : {};
         const hasStadium = Object.keys(stadium).length > 0;
+        const clockLabel = d.isFinal ? "Final" : "Live";
         let problemEl;
         let message;
         if (!hasStream) {
@@ -476,10 +477,9 @@ class LiveMain extends React.Component {
                     <div class="lds"><div></div><div></div><div></div></div>
                 </div>
                 <section>
-                    <h1>Live Analytics</h1>
                     <div className="GameBox">
                         <div className="ClockBox">
-                            <span className="BoxIcon Green">{d.isFinal ? "Final" : "Live"}</span>
+                            <span className={`BoxIcon ${clockLabel}`}>{clockLabel}</span>
                             <span className="Clock">{toClock(d.time)} {d.isOT ? "OT" : ""}</span>
                         </div>
                         <span>{d.stadium ? d.stadium : "No Stadium"}</span>

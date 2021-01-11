@@ -96,8 +96,12 @@ li {
     background: var(--color-blue);
 }
 
-.GameBox .BoxIcon.Green {
+.GameBox .BoxIcon.Live {
     background: var(--color-futsal);
+}
+
+.GameBox .BoxIcon.Final {
+    background: var(--color-light);
 }
 
 .StatsTable {
