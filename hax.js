@@ -494,6 +494,7 @@ room.onGameStart = async function(byPlayer) {
         type: EVENT_TYPE.Start,
         timeLimit: score.timeLimit,
         scoreLimit: score.scoreLimit,
+        stadium: currentStadiumName,
     });
     goals = [];
     kicks = [];
