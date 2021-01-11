@@ -1,12 +1,13 @@
 {
-    "roomName": "Futsal (3v3, 4v4)",
+    "roomName": "Virtual Soccer Analytics Intersession",
     "maxPlayers": 20,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
+    "password": "titans",
 
     "streamLive": true,
-    "streamName": "futsal_34",
+    "streamName": "class",
 
     "saveToFirebase": true,
     "saveToLocal": false,
