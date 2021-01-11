@@ -61,7 +61,7 @@
     margin-top: 25%;
 }
 
-.PlayerMain__Container.Loading .Loader {
+.MainContainer.Loading .Loader {
     display: block;
 }
 
@@ -118,7 +118,7 @@
 
 /* Player Analytics */
 
-.PlayerMain__Container {
+.MainContainer {
     max-width: 880px;
     margin: 0 auto;
     padding: 0 10px;
@@ -253,3 +253,138 @@
     font-family: 'Roboto', sans-serif;
     font-weight: normal;
 }
+
+/* Live Analytics */
+
+li {
+    font-size: 16px;
+    line-height: 20px;
+}
+
+.MainContainer.Live .CardFake {
+    padding: 0 10px;
+}
+
+.MainContainer.Live .Card {
+    background: var(--color-medium);
+    margin: 7.5px 0;
+    padding: 10px;
+}
+
+.MainContainer.Live .Half:first-child .Card {
+    margin-right: 7.5px;
+}
+
+.MainContainer.Live .Half:last-child .Card {
+    margin-left: 7.5px;
+}
+
+.MainContainer.Live .Card h1,
+.MainContainer.Live .Card h2,
+.MainContainer.Live .Card h3 {
+    margin-top: 0;
+}
+
+.MainContainer.Live .Field {
+    margin-bottom: 7.5px;
+}
+
+.MainContainer.Live .CardField + section {
+    margin-top: 0;
+}
+
+.CardField h3 {
+    position: absolute;
+    margin-top: 5px;
+    margin-left: 5px;
+    opacity: 0.90;
+}
+
+.Halves {
+    display: flex;
+    justify-content: space-between;
+}
+
+.Half {
+    display: inline-block;
+    width: 50%;
+}
+
+.StreamPicker {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 16px;
+    line-height: 20px;
+}
+
+.GameBox {
+    margin: 10px auto;
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 20px;
+    text-align: center;
+}
+
+.GameBox .ClockBox, .GameBox .ScoreBox {
+    display: inline-block;
+}
+
+.ClockBox .Clock, .ScoreBox .Score {
+    margin: 0 10px;
+}
+
+.GameBox .BoxIcon {
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.GameBox .BoxIcon.Red {
+    background: var(--color-red);
+}
+
+.GameBox .BoxIcon.Blue {
+    background: var(--color-blue);
+}
+
+.GameBox .BoxIcon.Live {
+    background: var(--color-futsal);
+}
+
+.GameBox .BoxIcon.Final {
+    background: var(--color-light);
+}
+
+.StatsTable {
+    text-align: left;
+    font-size: 16px;
+    line-height: 16px;
+}
+
+.StatsTable.Full table {
+    width: 100%;
+    border: none;
+}
+
+.StatsTable th, .StatsTable td {
+    padding: 2px;
+    padding-right: 10px;
+}
+
+.StatsTable th:last-child, .StatsTable td:last-child {
+    padding-right: 0;
+}
+
+.StatsTable th {
+    padding-bottom: 5px;
+    border-bottom: 1px solid white;
+    font-weight: bold;
+}
+
+.StatsTable tr:hover {
+    background: var(--color-light);
+    cursor: pointer;
+}
+
+/* Expected Goals (XG) Analytics */
+
