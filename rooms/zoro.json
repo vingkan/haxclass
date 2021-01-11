@@ -1,13 +1,9 @@
 {
-    "roomName": "Futsal (3v3, 4v4)",
+    "roomName": "Room of Zoro",
     "maxPlayers": 12,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
-    "password": "live",
-
-    "streamLive": true,
-    "streamName": "live",
 
     "saveToFirebase": true,
     "saveToLocal": false,
