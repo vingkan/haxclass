@@ -14,6 +14,13 @@ const KICK_TYPE = {
     OwnGoal: "own_goal",
 };
 
+const EVENT_TYPE = {
+    Start: "start",
+    Stop: "stop",
+    Victory: "victory",
+    SaveToError: "save_to_error",
+};
+
 const POSITION_TYPE = {
     Player: "player",
     Ball: "ball",
@@ -36,6 +43,17 @@ const POSITION_SAVE_COOLDOWN = 0.25;
 const SMALL_TIME_STEP = 0.01;
 const GOALPOST_ZERO = 0.1;
 const GOAL_AREA_RADIUS = 1.5;
+
+// Client keys that allow read-only access.
+const firebaseConfig = {
+    apiKey: "AIzaSyA4kjMsnaUhaGYL8tCS4FTj2UtGNWYKV14",
+    authDomain: "haxclass.firebaseapp.com",
+    databaseURL: "https://haxclass.firebaseio.com",
+    projectId: "haxclass",
+    storageBucket: "haxclass.appspot.com",
+    messagingSenderId: "425802086346",
+    appId: "1:425802086346:web:595b8d5f7058079a3e0133"
+};
 
 function parseColors(colorStr) {
     const c = colorStr.split(" ");
@@ -80,6 +98,9 @@ async function initRoom(room, config) {
         console.log(`Pass: ${config.password}`);    
     } else {
         console.log("Open Room");
+    }
+    if (config.streamLive) {
+        console.log(`Livestream Name: ${config.streamName}`);
     }
     return room;
 }
@@ -379,6 +400,55 @@ function getAssister(last, prev, team) {
     }
 }
 
+/* Livestream Methods */
+
+function startStream(room, db) {
+    return new Promise((resolve, reject) => {
+        db.ref(`live/${CONFIG.streamName}`).push(true).then((snap) => {
+            const streamId = snap.key;
+            console.log(`Streaming to: live/${CONFIG.streamName}/${streamId}`);
+            room.sendAnnouncement("Started livestream.");
+            resolve(streamId);
+        }).catch((err) => {
+            console.log("Error starting stream:");
+            console.log(err);
+            room.sendAnnouncement("Error starting stream, check logs.");
+            resolve(null);
+        });
+    });
+}
+
+function streamData(db, streamId, data) {
+    // console.log(`streamData(${db ? true : false}, ${streamId}, ${JSON.stringify(data, null, 2)})`);
+    return new Promise((resolve, reject) => {
+        try {
+            db.ref(`live/${CONFIG.streamName}/${streamId}`).push(data).then(() => {
+                resolve();
+            }).catch((err) => {
+                console.log(`Firebase error pushing to stream: live/${CONFIG.streamName}/${streamId}`);
+                console.log(err);
+                resolve();
+            });
+        } catch (err) {
+            console.log(`JS error pushing to stream: live/${CONFIG.streamName}/${streamId}`);
+            console.log(err);
+            resolve();
+        }
+    });
+}
+
+/* Room Initialization */
+
+// Initialize database connection if requested.
+let db;
+if (CONFIG.streamLive && firebase) {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    console.log("Initialized DB connection.");
+} else {
+    console.log("Did not initialize DB connection.");
+}
+
 // Initialize HaxBall Headless API.
 const room = HBInit(CONFIG);
 initRoom(room, CONFIG);
@@ -410,9 +480,21 @@ let possessionStartTime;
 
 let lastPositionSaveTime;
 
-let matchPlayersMap;
+let matchPlayersMap = null;;
 
-room.onGameStart = function(byPlayer) {
+let currentStadiumName;
+
+let currentStreamId;
+
+room.onGameStart = async function(byPlayer) {
+    // console.log("Game started.");
+    const score = room.getScores();
+    currentStreamId = await startStream(room, db);
+    streamData(db, currentStreamId, {
+        type: EVENT_TYPE.Start,
+        timeLimit: score.timeLimit,
+        scoreLimit: score.scoreLimit,
+    });
     goals = [];
     kicks = [];
     positions = [];
@@ -450,11 +532,8 @@ room.onGameStart = function(byPlayer) {
     matchPlayersMap = {};
 }
 
-room.onGameStop = function(byPlayer) {
-
-}
-
 room.onTeamVictory = async function(score) {
+    // console.log("Game won.");
     // Record and update team possession
     const time = getTime(room);
     const drive = {
@@ -495,6 +574,15 @@ room.onTeamVictory = async function(score) {
     const allTimeKicks = kicks.map((k) => saveAllTimeKick(k, currentStadiumName));
     const message = await window.saveGameRecord(record, summary, allTimeKicks);
     room.sendAnnouncement(message);
+    await streamData(db, currentStreamId, {
+        type: EVENT_TYPE.Victory,
+        scoreRed: finalScore.red,
+        scoreBlue: finalScore.blue,
+        time: score.time,
+        timeLimit: score.timeLimit,
+        scoreLimit: score.scoreLimit,
+        message,
+    });
     // const expRecord = {
     //     score: finalScore,
     //     stadium: currentStadiumName,
@@ -508,7 +596,14 @@ room.onTeamVictory = async function(score) {
     // room.sendAnnouncement(`Experimental Record: ${expRecordMsg}`);
 }
 
-let currentStadiumName;
+room.onGameStop = async function(byPlayer) {
+    // console.log("Game stopped.");
+    await streamData(db, currentStreamId, {
+        type: EVENT_TYPE.Stop,
+        byPlayer,
+    });
+    matchPlayersMap = null;
+}
 
 room.onStadiumChange = function(stadiumName, byPlayer) {
     currentStadiumName = stadiumName;
@@ -564,6 +659,7 @@ function updateTouched(newTouchPlayer, fromKick) {
                     score,
                 };
                 kicks.push(kick);
+                streamData(db, currentStreamId, saveAllTimeKick(kick, null));
                 if (kickType === KICK_TYPE.Save) {
                     room.sendDebug(`Save by ${newTouchPlayer.name} against ${lastTouchPlayer.name}`);
                 } else if (kickType === KICK_TYPE.Steal) {
@@ -586,6 +682,9 @@ function updateTouched(newTouchPlayer, fromKick) {
 }
 
 room.onGameTick = function() {
+    if (matchPlayersMap === null) {
+        return;
+    }
     const time = getTime(room);
     const delta = time - lastPositionSaveTime;
     // Save player positions
@@ -692,8 +791,13 @@ room.onTeamGoal = function(team) {
                 from: tailKick.from,
                 to: tailKick.to,
                 score,
+                correction: true,
             };
             kicks.push(errorKick);
+            streamData(db, currentStreamId, {
+                ...saveAllTimeKick(errorKick, null),
+                correction: true,
+            });
             room.sendDebug(`Save changed to error by ${tailKick.to.name}`);
         } else {
             kicks.push(tailKick);
@@ -709,6 +813,7 @@ room.onTeamGoal = function(team) {
         score,
     };
     kicks.push(kick);
+    streamData(db, currentStreamId, saveAllTimeKick(kick, null));
     // Record and update team possession
     const drive = {
         start: possessionStartTime,

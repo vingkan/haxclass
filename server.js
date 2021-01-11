@@ -213,11 +213,19 @@ async function start() {
                 });
             } else if (roomConfig.saveToLocal) {
                 saveToLocalSync(r, id);
+                resolve(`Saved match locally with ID: ${id}`);
             } else {
                 console.log("Match not saved.");
+                resolve("Match not saved.");
             }
         });
     });
+    if (roomConfig.streamLive) {
+        const firebaseApp = "https://www.gstatic.com/firebasejs/8.1.1/firebase-app.js"
+        const firebaseDatabase = "https://www.gstatic.com/firebasejs/8.1.1/firebase-database.js";
+        await page.addScriptTag({ url: firebaseApp });
+        await page.addScriptTag({ url: firebaseDatabase });
+    }
     // Start client script
     await page.addScriptTag({ path: "hax.js" });
 }
