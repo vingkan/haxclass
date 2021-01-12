@@ -13,9 +13,49 @@ function getParam(url, tag) {
     return null;
 }
 
+function maybeParseFloat(val) {
+    const per = val.split("%")[0];
+    if (!isNaN(per)) {
+        return parseFloat(per);
+    } else {
+        return isNaN(val) ? val : parseFloat(val);
+    }
+}
+
+function toPct(num, den) {
+    if (den > 0) {
+        const frac = num / den;
+        const pct = 100 * frac;
+        return `${pct.toFixed(1)}%`; 
+    } else {
+        return `0.0%`;
+    }
+}
+
+function toRatio(num, den, digits=4) {
+    if (num === 0) {
+        return `0.00`;
+    } else if (den > 0) {
+        const frac = num / den;
+        const before = `${frac}`.split(".")[0].length;
+        return `${frac.toFixed(digits - before)}`;
+    } else {
+        return `∞`;
+    }
+}
+
 function plur(n, s, p) {
     const ps = p ? p : `${s}s`;
     return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
+}
+
+function firstCap(s) {
+    if (s.length > 0) {
+        const f = s.substr(0, 1).toUpperCase();
+        return `${f}${s.substr(1)}`;
+    } else {
+        return s;
+    }
 }
 
 function leftpad(val) {
@@ -246,8 +286,8 @@ function StatsTable(props) {
     let sortedRows = [ ...rows ];
     if (sortCol !== null) {
         sortedRows = sortedRows.sort((a, b) => {
-            const aVal = isNaN(a[sortCol]) ? a[sortCol] : parseFloat(a[sortCol]);
-            const bVal = isNaN(b[sortCol]) ? b[sortCol] : parseFloat(b[sortCol]);
+            const aVal = maybeParseFloat(a[sortCol]);
+            const bVal = maybeParseFloat(b[sortCol]);
             if (sortAsc) {
                 return aVal > bVal ? 1 : -1;
             } else {

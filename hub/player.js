@@ -110,33 +110,6 @@ function getPlayerAnalytics(kickRes) {
     };
 }
 
-function toPct(num, den) {
-    if (den > 0) {
-        const frac = num / den;
-        const pct = 100 * frac;
-        return `${pct.toFixed(1)}%`; 
-    } else {
-        return `0.0%`;
-    }
-}
-
-function toRatio(num, den, digits=4) {
-    if (num === 0) {
-        return `0.00`;
-    } else if (den > 0) {
-        const frac = num / den;
-        const before = `${frac}`.split(".")[0].length;
-        return `${frac.toFixed(digits - before)}`;
-    } else {
-        return `∞`;
-    }
-}
-
-function plur(n, s, p) {
-    const ps = p ? p : `${s}s`;
-    return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
-}
-
 function ShotsStats(props) {
     const p = props.player;
     return (

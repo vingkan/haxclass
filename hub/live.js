@@ -212,6 +212,40 @@ function tableDefense(playerMap) {
     return { headers, rows };
 }
 
+function tablePossession(allPlayerMap, team) {
+    const headers = [
+        { key: "name", name: "Player" },
+        { key: "timeClock", name: "T.O.P." },
+        { key: "perTeam", name: "% of Team" },
+        { key: "perMatch", name: "% of Match" },
+    ];
+    const playerMap = allPlayerMap[team];
+    const otherPlayerMap = allPlayerMap[team === "red" ? "blue" : "red"];
+    const ourTotalTOP = toList(playerMap).reduce((agg, p) => {
+        return agg + p.timePossessed;
+    }, 0);
+    const oppTotalTOP = toList(otherPlayerMap).reduce((agg, p) => {
+        return agg + p.timePossessed;
+    }, 0);
+    const matchTotalTOP = ourTotalTOP + oppTotalTOP;
+    const rowsTOP = toList(playerMap).concat([{
+        name: `${firstCap(team)} Team`,
+        timePossessed: ourTotalTOP,
+    }]);
+    const rows = rowsTOP.map((p) => {
+        return {
+            name: limitChars(p.name, 20),
+            timePossessed: p.timePossessed,
+            timeClock: toClock(p.timePossessed),
+            perTeam: toPct(p.timePossessed, ourTotalTOP),
+            perMatch: toPct(p.timePossessed, matchTotalTOP),
+        }
+    }).sort((a, b) => {
+        return b.timePossessed - a.timePossessed;
+    });
+    return { headers, rows };
+}
+
 class LiveMain extends React.Component {
     constructor(props) {
         super(props);
@@ -221,6 +255,7 @@ class LiveMain extends React.Component {
             ref: null,
             listener: null,
             interval: null,
+            newStreamIdMsg: "",
         };
         if (props.streamName && props.streamId) {
             let currentData = this.state.data;
@@ -336,23 +371,99 @@ class LiveMain extends React.Component {
                             </div>
                         </div>
                     </div>
+                    <div className="Halves">
+                        <div className="Half">
+                            <div class="Card">
+                                <h3>Red Time of Possession</h3>
+                                <StatsTable table={tablePossession(d.players, "red")} />
+                            </div>
+                        </div>
+                        <div className="Half">
+                            <div class="Card">
+                                <h3>Blue Time of Possession</h3>
+                                <StatsTable table={tablePossession(d.players, "blue")} />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="CardFake">
+                        <p>Processed {plur(d.nEvents, "event")}.</p>
+                    </div>
                 </section>
-                <div className="CardFake">
-                    <p>Processed {plur(d.nEvents, "event")}.</p>
-                </div>
+                <section>
+                    <div className="CardFake">
+                        <div className="Picker">
+                            <span className="Sub">
+                                <span className="Label Bold">Get Stream by Match ID: </span>
+                                <input
+                                    type="text"
+                                    placeholder="Match ID"
+                                    style={{display: this.props.streamName ? "inline-block" : "none"}}
+                                    onKeyPress={(e) => {
+                                        const code = e.keyCode ? e.keyCode : e.which;
+                                        if (code === 13) {
+                                            const mid = e.target.value;
+                                            const streamName = component.props.streamName;
+                                            component.setState({ isLoading: true });
+                                            maybeGetStreamId(streamName, mid, (newStreamId) => {
+                                                if (newStreamId) {
+                                                    const msg = `Found stream ID... loading data.`;
+                                                    component.setState({ newStreamIdMsg: msg });
+                                                    component.props.setNewStreamId(newStreamId);    
+                                                } else {
+                                                    const msg = `No stream ID found for match ID: ${mid}`;
+                                                    component.setState({ newStreamIdMsg: msg });
+                                                }
+                                                component.setState({ isLoading: false });
+                                            });
+                                        }
+                                    }}
+                                />
+                                <span style={{marginLeft: "10px"}}>{this.state.newStreamIdMsg}</span>
+                            </span>
+                        </div>
+                    </div>
+                </section>
             </div>
         );
     }
+}
+
+function maybeGetStreamId(checkStream, mid, callback) {
+    db.ref(`live/${checkStream}`).once("value", (parentSnap) => {
+        const nStreamIds = parentSnap.numChildren();
+        let failures = 0;
+        parentSnap.forEach((childSnap) => {
+            const childRef = db.ref(`live/${checkStream}/${childSnap.key}`);
+            const queryRef = childRef.orderByChild("message").equalTo(`Match ID: ${mid}`).limitToLast(1);
+            queryRef.once("value", (snap) => {
+                const val = snap.val();
+                if (val) {
+                    callback(childSnap.key);
+                } else {
+                    failures++;
+                    if (failures >= nStreamIds) {
+                        callback(null);
+                    }
+                }
+            });
+        });
+    });
 }
 
 // This one came before it: live/live/-MQjwDHJP15yYxzlXUOz
 // Check this one for wrong victory: live/live/-MQjxK8rB1--Pt54B1ii
 // const streamName = "live";
 // const streamId = "-MQjk-mRG7Rsko0XBXLc";
+// For testing Match ID to Stream ID:
+// const checkStream = "futsal_34";
+// const mid = "-MQrXcxgqh0VUfjF14A_";
+// Should be: -MQrXJwFp_IHtVE6qu3Z
 
 const url = document.location.href;
 let streamName = getParam(url, "n");
 let streamId = getParam(url, "i");
+let liveRef;
+let liveListener;
 
 function renderMain(name, id, stadiums) {
     const mainEl = document.getElementById("main");
@@ -365,6 +476,10 @@ function renderMain(name, id, stadiums) {
                 streamName = newStreamName
                 start(stadiums);
             }}
+            setNewStreamId={(newStreamId) => {
+                streamId = newStreamId
+                start(stadiums);
+            }}
         />
     );
     ReactDOM.unmountComponentAtNode(mainEl);
@@ -372,12 +487,16 @@ function renderMain(name, id, stadiums) {
 }
 
 function start(stadiums) {
+    if (liveRef && liveListener) {
+        liveRef.off("child_added", liveListener);
+    }
     if (!streamName) {
         renderMain(null, null, stadiums);
     } else if (streamId) {
         renderMain(streamName, streamId, stadiums);    
     } else {
-        db.ref(`live/${streamName}`).orderByKey().limitToLast(1).on("child_added", (snap) => {
+        liveRef = db.ref(`live/${streamName}`).orderByKey().limitToLast(1);
+        liveListener = liveRef.on("child_added", (snap) => {
             if (snap.key !== streamId) {
                 streamId = snap.key;
                 renderMain(streamName, streamId, stadiums);
