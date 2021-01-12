@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Download Kicks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="../favicon.ico" />
+    <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.1.1/firebase-database.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="main.css">
+    <link rel="stylesheet" type="text/css" href="analytics.css">
+    <script src="hub.js" type="text/babel"></script>
+    <script type="text/javascript">
+        
+        // Client keys that allow read-only access.
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4kjMsnaUhaGYL8tCS4FTj2UtGNWYKV14",
+            authDomain: "haxclass.firebaseapp.com",
+            databaseURL: "https://haxclass.firebaseio.com",
+            projectId: "haxclass",
+            storageBucket: "haxclass.appspot.com",
+            messagingSenderId: "425802086346",
+            appId: "1:425802086346:web:595b8d5f7058079a3e0133"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+    </script>
+</head>
+<body>
+    <div id="main" class="MainContainer">
+        <div class="Loader">
+            <div class="lds"><div></div><div></div><div></div></div>
+        </div>
+        <section>
+            <h1>Download All-Time Kicks</h1>
+            <p>Use this form to download all-time kicks data for a player.</p>
+            <div class="Picker">
+                <span class="Sub">
+                    <span class="Label Bold">Player:</span>
+                    <input id="username" type="text" placeholder="Screen Name" />
+                </span>
+                <span class="Sub Selector">
+                    <span class="Label Bold">Format:</span>
+                    <select id="format">
+                        <option value="JSON" selected>JSON</option>
+                        <option value="CSV">CSV</option>
+                    </select>
+                </span>
+                <span class="Sub" style="display: none;">
+                    <span class="Label Bold">Since Date:</span>
+                    <input type="text" placeholder="M/D/YYYY" />
+                </span>
+                <span class="Sub">
+                    <button id="download" class="Button__Round Download">Download</button>
+                </span>
+            </div>
+            <p id="message"></p>
+            <textarea id="output" class="DataOutput"></textarea>
+        </section>
+    </div>
+    <script type="text/javascript" src="download.js"></script>
+    <script type="text/javascript">
+                
+        const onLocal = document.location.hostname === "localhost"
+        const forcedProd = document.location.href.indexOf("l=false") > -1;
+        const isLocal = onLocal && !forcedProd;
+        const fetchPlayer = isLocal ? fetchPlayerKicksFromLocal : fetchPlayerKicksFromFirebase;
+        console.log(`Fetching player data from ${isLocal ? "local" : "Firebase"}.`);
+
+        const userInput = document.getElementById("username");
+        const formatInput = document.getElementById("format");
+        const sinceInput = document.getElementById("since");
+        const submitBtn = document.getElementById("download");
+        const msgEl = document.getElementById("message");
+        const outEl = document.getElementById("output");
+        const mainEl = document.getElementById("main");
+
+        function showMessage(el, msg) {
+            el.innerText = msg;
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                mainEl.classList.add("Loading");
+            } else {
+                mainEl.classList.remove("Loading");
+            }
+        }
+
+        function downloadAllTimeKicks(username) {
+            return new Promise((resolve, reject) => {
+                fetchPlayer(username).then((kickRes) => {
+                    const lines = [
+                        `Fetched all-time kicks for ${username}:`,
+                        `${Object.keys(kickRes.from).length} from ${username}.`,
+                        `${Object.keys(kickRes.to).length} to ${username}.`,
+                        `${Object.keys(allMatchMap).length} matches for ${username}.`,
+                    ];
+                    const countMsg = lines.join("\n");
+                    allTimeKickMap[username] = kickRes;
+                    resolve({kickRes, countMsg});
+                }).catch((err) => {
+                    const msg = `Failed to find data for player: ${username}`;
+                    console.log(msg);
+                    console.error(err);
+                    reject(msg);
+                });
+            });
+        }
+
+        submitBtn.addEventListener("click", (e) => {
+            const username = userInput.value;
+            const format = formatInput.value;
+            console.log(username, );
+            if (username) {
+                setLoading(true);
+                downloadAllTimeKicks(username).then((done) => {
+                    const { kickRes, countMsg } = done;
+                    kickRes.matches = allMatchMap;
+                    allMatchMap = {};
+                    setLoading(false);
+                    showMessage(msgEl, countMsg);
+                    if (format === "JSON") {
+                        const allTimeData = JSON.stringify(kickRes, null, 2)
+                        outEl.value = allTimeData;
+                    } else if (format === "CSV") {
+
+                    } else {
+                        const allTimeData = JSON.stringify(kickRes, null, 2)
+                        outEl.value = allTimeData;
+                        showMessage(msgEl, countMsg + `\nInvalid format: ${format}, using JSON.`);
+                    }
+                }).catch((msg) => {
+                    setLoading(false);
+                    showMessage(msgEl, msg);
+                });
+            } else {
+                showMessage(msgEl, "No username provided.");
+            }
+        });
+
+
+    </script>
+</body>
+</html>

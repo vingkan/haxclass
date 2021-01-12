@@ -119,9 +119,20 @@ class Summary extends React.Component {
         const urlCSV = `./csv.html?m=${s.id}${this.props.isLocal ? "&l=true" : ""}`;
         const urlXG = `./xg.html?m=${s.id}${this.props.isLocal ? "&l=true" : ""}`;
         const winner = s.scoreRed > s.scoreBlue ? "Red Won" : "Blue Won";
-        const nPlayers = s.players.split(", ").length;
+        let allPlayers;
+        if (s.playersRed || s.playersBlue) {
+            const playersRed = s.playersRed ? s.playersRed.split(", ") : [];
+            const playersBlue = s.playersBlue ? s.playersBlue.split(", ") : [];
+            allPlayers = playersRed.concat(playersBlue)
+        } else if (s.players) {
+            allPlayers = s.players.split(", ");
+        } else {
+            allPlayers = [];
+        }
+        const nPlayers = allPlayers.length;
+        const allPlayersStr = nPlayers > 0 ? allPlayers.join(", ") : "No player names found.";
         const pluralPlayers = nPlayers === 1 ? "Player" : "Players";
-        const playerString = `${nPlayers} ${pluralPlayers}: ${s.players}`;
+        const playerString = `${nPlayers} ${pluralPlayers}: ${allPlayersStr}`;
         const sizeString = ` | ${getSizeString(s.size)}`;
         const stadiumString = limitChars(s.stadium, maxLineLength - sizeString.length);
         const metaString = `${stadiumString}${sizeString}`;
@@ -267,6 +278,7 @@ class Main extends React.Component {
                     <a className="Button__Round Nav__Live" href="./live.html">Livestream Stats</a>
                     <a className="Button__Round Nav__Player" href="./player.html">Player Comparison</a>
                     <a className="Button__Round Nav__XG" href="./xg.html">Expected Goals</a>
+                    <a className="Button__Round Nav__Download" href="./download.html">Download Kicks</a>
                 </section>
                 <section className="Main__Search">
                     <h2>Find Match By ID</h2>

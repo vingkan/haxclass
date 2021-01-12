@@ -420,18 +420,50 @@ li {
     font-size: 10px;
 }
 
-/* Expected Goals (XG) Analytics */
+/* Download All-Time Kicks */
 
-.XGPicker {
-    display: flex;
-    justify-content: space-between;
+.Picker {
     font-size: 14px;
     line-height: 20px;
     vertical-align: middle;
 }
 
-.XGPicker .Label {
+.Picker .Label{
     margin-right: 5px;
+}
+
+.Picker .Sub {
+    margin-right: 10px;
+}
+
+.Picker .Sub:last-child {
+    margin-right: 0;
+}
+
+.Download {
+    background: #63bee6;
+}
+
+.DataOutput {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    min-height: 400px;
+    height: 400px;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid var(--color-light);
+    background: var(--color-medium);
+    color: white;
+    outline: none;
+}
+
+/* Expected Goals (XG) Analytics */
+
+.XGPicker {
+    display: flex;
+    justify-content: space-between;
 }
 
 .XGPicker .Model input {
@@ -450,8 +482,8 @@ li {
 }
 
 .ViewPicker .Button__Round {
+    margin: 10px 0;
     margin-right: 10px;
-    background: #b678f5;
 }
 
 .ViewPicker .Button__Round:last-child {
@@ -473,4 +505,16 @@ li {
 .TimePlot img {
     width: 100%;
     margin-bottom: 20px;
+}
+
+.BtnField {
+    background: #b678f5;
+}
+
+.BtnTimePlot {
+    background: #63bee6;
+}
+
+.BtnReplay {
+    background: #ed348e;
 }

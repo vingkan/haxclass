@@ -157,7 +157,7 @@ class XGMain extends React.Component {
                 </div>
                 <section>
                     <h1>Expected Goals (XG)</h1>
-                    <div className="XGPicker">
+                    <div className="XGPicker Picker">
                         <span className="Stadium TextOnly">
                             <span className="Label Bold">Stadium: </span>
                             {stadiumName}
@@ -205,12 +205,17 @@ class XGMain extends React.Component {
                     </div>
                     {problemEl}
                     <div className="ViewPicker">
-                        <button className="Button__Round" onClick={setView("field")}>
+                        <a className="Button__Round BtnField" onClick={setView("field")}>
                             View Field
-                        </button>
-                        <button className="Button__Round" onClick={setView("timeplot")}>
+                        </a>
+                        <a className="Button__Round BtnTimePlot" onClick={setView("timeplot")}>
                             View Time Plot
-                        </button>
+                        </a>
+                        <a
+                            className="Button__Round BtnReplay"
+                            href={`./replay.html?m=${this.props.mid}${isLocal ? "&l=true" : ""}`}
+                            target="_blank"
+                        >Open Replay</a>
                     </div>
                     <Field stadium={stadium} kicks={[]} style={{display: showField}}>
                         {this.state.fieldChildren}

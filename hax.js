@@ -562,8 +562,9 @@ room.onTeamVictory = async function(score) {
         scoreRed: finalScore.red,
         scoreBlue: finalScore.blue,
         time: finalScore.time,
+        timeLimit: finalScore.timeLimit,
+        scoreLimit: finalScore.scoreLimit,
         stadium: currentStadiumName,
-        players: finalPlayers.map(p => p.name).join(", "),
         playersRed: finalPlayersRed.map(p => p.name).join(", "),
         playersBlue: finalPlayersBlue.map(p => p.name).join(", "),
     };
