@@ -328,6 +328,19 @@ li {
     line-height: 20px;
 }
 
+.LiveHeader {
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 10px;
+}
+
+.FakeHeader {
+    height: 30px;
+}
+
 .GameBox {
     margin: 10px auto;
     margin-top: 15px;

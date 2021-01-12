@@ -205,7 +205,15 @@ function StatsTable(props) {
                 setSortAsc(false);
             } else {
                 // Same sort column, just change sort order.
-                setSortAsc(!sortAsc);
+                // Cycle between: false -> true -> null -> false.
+                if (sortAsc === false) {
+                    setSortAsc(true);
+                } else if (sortAsc) {
+                    setSortCol(null);
+                    setSortAsc(false);
+                } else {
+                    setSortAsc(false);
+                }
             }
         };
     }

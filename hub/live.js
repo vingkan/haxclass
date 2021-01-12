@@ -273,7 +273,7 @@ class LiveMain extends React.Component {
                 <div className="Loader">
                     <div class="lds"><div></div><div></div><div></div></div>
                 </div>
-                <section>
+                <div className="LiveHeader">
                     <div className="GameBox">
                         <div className="ClockBox">
                             <span className={`BoxIcon ${clockLabel}`}>{clockLabel}</span>
@@ -286,7 +286,8 @@ class LiveMain extends React.Component {
                             <span className="BoxIcon Blue">Blue</span>
                         </div>
                     </div>
-                </section>
+                </div>
+                <div className="FakeHeader"></div>
                 <div className="StreamPicker">
                     { problemEl }
                     <input
