@@ -13,7 +13,7 @@ function styleXGCell(k) {
     };
 }
 
-function tableXG(match, modelName, onView) {
+function tableXG(match, modelName, selectedKick, onView) {
     const headers = [
         { key: "name", name: "Player" },
         { key: "team", name: "Team", style: styleTeamCell },
@@ -25,11 +25,16 @@ function tableXG(match, modelName, onView) {
         { key: "view", name: "View" },
     ];
     const kicks = match ? match.kicks : [];
-    const rows = kicks.map((k) => {
+    const classes = "Button__Round ViewShot";
+    const rows = kicks.map((k, i) => {
+        const isSelected = i === selectedKick;
         const btn = (
-            <button className="Button__Round ViewShot" onClick={() => {
-                onView(match, k);
-            }}>View</button>
+            <button
+                className={`${classes}${isSelected ? " SelectedKick" : ""}`}
+                onClick={() => {
+                    onView(match, k, i);
+                }}
+            >{isSelected ? "Displayed" : "View"}</button>
         );
         return {
             name: limitChars(k.fromName, 20),
@@ -55,15 +60,74 @@ function getPositionsForTimeRange(positions, start, end) {
     });
 }
 
+function getFieldChildren(match, stadium, k) {
+    let fieldChildren = [];
+    if (match && stadium) {
+        const offset = 2;
+        const startTime = k.time - offset;
+        const endTime = k.time;
+        const positions = getPositionsForTimeRange(match.positions, startTime, endTime);
+        const { toX, toY } = makeXAndY(stadium);
+        let lastPos = {};
+        positions.forEach((p) => {
+            let childEl;
+            const alpha = getAlpha(p.time, startTime, endTime);
+            if (p.type === "player") {
+                lastPos[p.name] = p;
+                childEl = (
+                    <circle
+                        className="player"
+                        cx={toX(p.x)}
+                        cy={toY(p.y)}
+                        r={PLAYER_RADIUS}
+                        fill={`rgba(${TEAM_RGB[p.team]}, ${alpha})`}
+                    />
+                );
+            } else {
+                childEl = (
+                    <circle
+                        className="ball-alpha"
+                        cx={toX(p.x)}
+                        cy={toY(p.y)}
+                        r={stadium.ball.radius}
+                        fill={`rgba(${FUTSAL_RGB}, ${alpha})`}
+                    />
+                );
+            }
+            fieldChildren.push(childEl);
+        });
+        toList(lastPos).forEach((p) => {
+            const textEl = (
+                <text
+                    className="username"
+                    x={toX(p.x)}
+                    y={toY(p.y)}
+                    dy={(7 / 3) * PLAYER_RADIUS}
+                    fontSize={(4 / 3) * PLAYER_RADIUS}
+                >{p.name}</text>
+            );
+            fieldChildren.push(textEl);
+        });
+    }
+    return fieldChildren;
+}
+
 class XGMain extends React.Component {
     constructor(props) {
         super(props);
+        const stadiums = props.stadiums || {};
+        const data = props.data || {};
+        const match = data.match || null;
+        const stadium = match ? stadiums[match.stadium] || {} : {};
+        const firstKick = match ? match.kicks[0] : null;
+        const firstKickChildren = getFieldChildren(match, stadium, firstKick);
         this.state = {
             isLoading: props.stadiums ? false : true,
             mid: props.mid ? props.mid : null,
             model: props.model ? props.model : null,
             view: "field",
-            fieldChildren: [],
+            selectedKick: 0,
+            fieldChildren: firstKickChildren,
         };
     }
     render() {
@@ -74,67 +138,16 @@ class XGMain extends React.Component {
         const match = data.match || null;
         const stadium = match ? stadiums[match.stadium] || {} : {};
         const stadiumName = match ? match.stadium : "No Stadium Selected";
-        const toX = (x) => {
-            return x - stadium.bounds.minX;
-        };
-        const toY = (y) => {
-            return y - stadium.bounds.minY;
-        };
-        const viewShot = (m, k) => {
-            let fieldChildren = [];
-            if (match && stadium) {
-                const offset = 2;
-                const startTime = k.time - offset;
-                const endTime = k.time;
-                const positions = getPositionsForTimeRange(match.positions, startTime, endTime);
-                let lastPos = {};
-                positions.forEach((p) => {
-                    let childEl;
-                    const alpha = getAlpha(p.time, startTime, endTime);
-                    if (p.type === "player") {
-                        lastPos[p.name] = p;
-                        childEl = (
-                            <circle
-                                className="player"
-                                cx={toX(p.x)}
-                                cy={toY(p.y)}
-                                r={PLAYER_RADIUS}
-                                fill={`rgba(${TEAM_RGB[p.team]}, ${alpha})`}
-                            />
-                        );
-                    } else {
-                        childEl = (
-                            <circle
-                                className="ball"
-                                cx={toX(p.x)}
-                                cy={toY(p.y)}
-                                r={stadium.ball.radius}
-                                fill={`rgba(${FUTSAL_RGB}, ${alpha})`}
-                            />
-                        );
-                    }
-                    fieldChildren.push(childEl);
-                });
-                toList(lastPos).forEach((p) => {
-                    const textEl = (
-                        <text
-                            className="username"
-                            x={toX(p.x)}
-                            y={toY(p.y)}
-                            dy={(7 / 3) * PLAYER_RADIUS}
-                            fontSize={(4 / 3) * PLAYER_RADIUS}
-                        >{p.name}</text>
-                    );
-                    fieldChildren.push(textEl);
-                });
-            }
-            component.setState({ fieldChildren });
+        const viewShot = (m, k, i) => {
+            const fieldChildren = getFieldChildren(match, stadium, k);
+            component.setState({ fieldChildren, selectedKick: i, view: "field" });
         }
         const setView = (viewName) => { 
             return (e) => {
                 component.setState({ view: viewName });
             };
         };
+        const xgTable = tableXG(match, this.props.model, this.state.selectedKick, viewShot);
         const showField = this.state.view === "field" ? "block" : "none";
         const showTimePlot = this.state.view === "timeplot" ? "block" : "none";
         let timePlotEl;
@@ -223,7 +236,7 @@ class XGMain extends React.Component {
                     <div className="TimePlot" style={{display: showTimePlot}}>
                         {timePlotEl}
                     </div>
-                    <StatsTable table={tableXG(match, this.props.model, viewShot)} />
+                    <StatsTable table={xgTable} />
                 </section>
             </div>
         );

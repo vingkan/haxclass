@@ -477,6 +477,7 @@ li {
 .ViewPicker {
     text-align: center;
     margin: 10px 0;
+    margin-top: 15px;
     font-size: 14px;
     line-height: 18px;
 }
@@ -500,6 +501,10 @@ li {
     font-size: 14px;
     line-height: 14px;
     padding: 5px;
+}
+
+.ViewShot.SelectedKick {
+    background: white;
 }
 
 .TimePlot img {

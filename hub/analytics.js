@@ -72,6 +72,16 @@ async function loadStadiumData() {
     return stadiumDataMap;
 }
 
+function makeXAndY(stadium) {
+    const toX = (x) => {
+        return x - stadium.bounds.minX;
+    };
+    const toY = (y) => {
+        return y - stadium.bounds.minY;
+    };
+    return { toX, toY };
+}
+
 function makeArcPath(props) {
     const { x1, y1, x2, y2, sweep } = props;
     const d = `M ${x1} ${y1} A 1 1, 0, 0 ${sweep}, ${x2} ${y2}`;
