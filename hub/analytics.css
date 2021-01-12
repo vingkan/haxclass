@@ -65,6 +65,17 @@
     display: block;
 }
 
+/* General Styles */
+
+p {
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.Bold {
+    font-weight: bold;
+}
 
 /* SVG Field */
 
@@ -381,10 +392,72 @@ li {
     font-weight: bold;
 }
 
-.StatsTable tr:hover {
+.StatsTable tr:hover, .StatsTable th:hover {
     background: var(--color-light);
     cursor: pointer;
 }
 
+.StatsTable th.Sorted {
+    background: var(--color-light);
+    display: flex;
+    justify-content: space-between;
+}
+
+.StatsTable .SortArrow {
+    font-size: 10px;
+}
+
 /* Expected Goals (XG) Analytics */
 
+.XGPicker {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    line-height: 20px;
+    vertical-align: middle;
+}
+
+.XGPicker .Label {
+    margin-right: 5px;
+}
+
+.XGPicker .Model input {
+    width: 110px;
+}
+
+.XGPicker .TextOnly {
+    line-height: 24px;
+}
+
+.ViewPicker {
+    text-align: center;
+    margin: 10px 0;
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.ViewPicker .Button__Round {
+    margin-right: 10px;
+    background: #b678f5;
+}
+
+.ViewPicker .Button__Round:last-child {
+    margin-right: 0;
+}
+
+.ViewPicker .Button__Round:hover {
+    background: white;
+}
+
+.ViewShot {
+    background: var(--color-futsal);
+    border-radius: 5px;
+    font-size: 14px;
+    line-height: 14px;
+    padding: 5px;
+}
+
+.TimePlot img {
+    width: 100%;
+    margin-bottom: 20px;
+}

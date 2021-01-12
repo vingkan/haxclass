@@ -106,6 +106,7 @@ section {
 }
 
 .Button__Round {
+    font-family: 'Roboto', sans-serif;
     box-sizing: border-box;
     border: none;
     outline: none;

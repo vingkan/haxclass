@@ -1,7 +1,6 @@
 /* global db */
 
 const isLocal = document.location.hostname === "localhost" && document.location.href.indexOf("l=false") == -1;
-const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuapp.com";
 
 function listenForSummariesFromFirebase(limit, callback, prevListener) {
     const ref = db.ref("summary");
@@ -115,10 +114,10 @@ class Summary extends React.Component {
     render() {
         const s = this.props.summary;
         const maxLineLength = 40;
-        const urlReplay = `./replay.html?l=${this.props.isLocal}&m=${s.id}`;
-        const urlJSON = `./json.html?l=${this.props.isLocal}&m=${s.id}`;
-        const urlCSV = `./csv.html?l=${this.props.isLocal}&m=${s.id}`;
-        const urlXG = `${HAXML_SERVER}/xgtimeplot/${s.id}.png`;
+        const urlReplay = `./replay.html?m=${s.id}${this.props.isLocal ? "&l=true" : ""}`;
+        const urlJSON = `./json.html?m=${s.id}${this.props.isLocal ? "&l=true" : ""}`;
+        const urlCSV = `./csv.html?m=${s.id}${this.props.isLocal ? "&l=true" : ""}`;
+        const urlXG = `./xg.html?m=${s.id}${this.props.isLocal ? "&l=true" : ""}`;
         const winner = s.scoreRed > s.scoreBlue ? "Red Won" : "Blue Won";
         const nPlayers = s.players.split(", ").length;
         const pluralPlayers = nPlayers === 1 ? "Player" : "Players";

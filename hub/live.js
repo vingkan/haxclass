@@ -1,32 +1,3 @@
-function getParam(url, tag) {
-    if (url.indexOf(`${tag}=`) > -1) {
-        return url.split(`${tag}=`)[1].split("&")[0];
-    }
-    return null;
-}
-
-function plur(n, s, p) {
-    const ps = p ? p : `${s}s`;
-    return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
-}
-
-function leftpad(val) {
-    return val < 10 ? `0${val}` : `${val}`;
-}
-
-function toClock(secs) {
-    const s = Math.floor(secs);
-    return `${leftpad(Math.floor(s / 60))}:${leftpad(s % 60)}`;
-}
-
-function limitChars(s, c) {
-    return s.length < c ? s : `${s.substr(0, c)}...`;
-}
-
-function toList(map) {
-    return Object.keys(map).map((k) => map[k]);
-}
-
 function initializeData() {
     return {
         nEvents: 0,
@@ -237,32 +208,6 @@ function tableDefense(playerMap) {
         return b.shotsFaced - a.shotsFaced;
     });
     return { headers, rows };
-}
-
-function StatsTable(props) {
-    const { headers, rows } = props.table;
-    const getCells = (p) => {
-        return headers.map((col) => {
-            return <td>{p[col.key]}</td>
-        });
-    };
-    const getRow = (p) => {
-        return <tr>{getCells(p)}</tr>;
-    };
-    return (
-        <div className="StatsTable Full">
-            <table>
-                <thead>
-                    {headers.map((col) => {
-                        return <th>{col.name}</th>
-                    })}
-                </thead>
-                <tbody>
-                    {rows.map(getRow)}
-                </tbody>
-            </table>
-        </div>
-    );
 }
 
 class LiveMain extends React.Component {
