@@ -146,7 +146,7 @@ section {
     margin: 10px auto;
     padding: 5px;
     font-size: 14px;
-    line-height: 16px;
+    line-height: 14px;
     display: flex;
     justify-content: space-between;
 }
@@ -203,5 +203,28 @@ section {
 }
 
 .Summary__XG {
+    background: #ed348e;
+}
+
+.Main__Nav .Button__Round {
+    font-family: 'Roboto', sans-serif;
+    border-radius: 5px;
+    margin-top: 10px;
+    margin-right: 10px;
+}
+
+.Main__Nav .Button__Round:last-child {
+    margin-right: 0;
+}
+
+.Nav__Live {
+    background: #f59d78;
+}
+
+.Nav__Player {
+    background: #58eda5;
+}
+
+.Nav__XG {
     background: #ed348e;
 }

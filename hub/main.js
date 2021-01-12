@@ -263,6 +263,12 @@ class Main extends React.Component {
                 <section>
                     <h1>HaxClass Hub</h1>
                 </section>
+                <section className="Main__Nav">
+                    <h2>View Analytics</h2>
+                    <a className="Button__Round Nav__Live" href="./live.html">Livestream Stats</a>
+                    <a className="Button__Round Nav__Player" href="./player.html">Player Comparison</a>
+                    <a className="Button__Round Nav__XG" href="./xg.html">Expected Goals</a>
+                </section>
                 <section className="Main__Search">
                     <h2>Find Match By ID</h2>
                     <input

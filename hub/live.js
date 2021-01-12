@@ -302,6 +302,7 @@ class LiveMain extends React.Component {
         }
     }
     render() {
+        const component = this;
         const isLoading = this.state.isLoading;
         const hasStream = this.props.streamName && this.props.streamId;
         const d = this.state.data;
@@ -345,6 +346,13 @@ class LiveMain extends React.Component {
                         type="text"
                         placeholder="Stream Name"
                         style={{display: this.props.streamName ? "none" : "block"}}
+                        onKeyPress={(e) => {
+                            const code = e.keyCode ? e.keyCode : e.which;
+                            if (code === 13) {
+                                const name = e.target.value;
+                                component.props.onStreamChange(name);   
+                            }
+                        }}
                     />
                 </div>
                 <div className="CardField" style={{display: hasStadium ? "block" : "none"}}>
@@ -389,21 +397,31 @@ class LiveMain extends React.Component {
     }
 }
 
-function renderMain(streamName, streamId, stadiums) {
-    const mainEl = document.getElementById("main");
-    const mainRe = <LiveMain streamName={streamName} streamId={streamId} stadiums={stadiums} />
-    ReactDOM.unmountComponentAtNode(mainEl);
-    ReactDOM.render(mainRe, mainEl);
-}
-
 // This one came before it: live/live/-MQjwDHJP15yYxzlXUOz
 // Check this one for wrong victory: live/live/-MQjxK8rB1--Pt54B1ii
 // const streamName = "live";
 // const streamId = "-MQjk-mRG7Rsko0XBXLc";
 
 const url = document.location.href;
-const streamName = getParam(url, "n");
+let streamName = getParam(url, "n");
 let streamId = getParam(url, "i");
+
+function renderMain(name, id, stadiums) {
+    const mainEl = document.getElementById("main");
+    const mainRe = (
+        <LiveMain
+            streamName={name}
+            streamId={id}
+            stadiums={stadiums}
+            onStreamChange={(newStreamName) => {
+                streamName = newStreamName
+                start(stadiums);
+            }}
+        />
+    );
+    ReactDOM.unmountComponentAtNode(mainEl);
+    ReactDOM.render(mainRe, mainEl);
+}
 
 function start(stadiums) {
     if (!streamName) {
