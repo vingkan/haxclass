@@ -6,10 +6,10 @@ let allMatchMap = {};
 function combineKicks(kickRes) {
     let kicks = [];
     Object.keys(kickRes.to).forEach((k) => {
-        kicks.push({ ...kickRes.to[k], kick: k });
+        kicks.push({ ...kickRes.to[k], kick: k, direction: "to" });
     });
     Object.keys(kickRes.from).forEach((k) => {
-        kicks.push({ ...kickRes.from[k], kick: k });
+        kicks.push({ ...kickRes.from[k], kick: k, direction: "from" });
     });
     return kicks;
 }

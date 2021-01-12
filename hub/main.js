@@ -278,7 +278,7 @@ class Main extends React.Component {
                     <a className="Button__Round Nav__Live" href="./live.html">Livestream Stats</a>
                     <a className="Button__Round Nav__Player" href="./player.html">Player Comparison</a>
                     <a className="Button__Round Nav__XG" href="./xg.html">Expected Goals</a>
-                    <a className="Button__Round Nav__Download" href="./download.html">Download Kicks</a>
+                    <a className="Button__Round Nav__Download" href="./download.html">Download Data</a>
                 </section>
                 <section className="Main__Search">
                     <h2>Find Match By ID</h2>

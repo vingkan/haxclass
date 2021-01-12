@@ -35,8 +35,8 @@
             <div class="lds"><div></div><div></div><div></div></div>
         </div>
         <section>
-            <h1>Download All-Time Kicks</h1>
-            <p>Use this form to download all-time kicks data for a player.</p>
+            <h1>Download All-Time Data</h1>
+            <p>Use this form to download all-time kicks and match summary data for a player.</p>
             <div class="Picker">
                 <span class="Sub">
                     <span class="Label Bold">Player:</span>
@@ -45,8 +45,8 @@
                 <span class="Sub Selector">
                     <span class="Label Bold">Format:</span>
                     <select id="format">
-                        <option value="JSON" selected>JSON</option>
-                        <option value="CSV">CSV</option>
+                        <option value="CSV" selected>CSV</option>
+                        <option value="JSON">JSON</option>
                     </select>
                 </span>
                 <span class="Sub" style="display: none;">
@@ -58,11 +58,113 @@
                 </span>
             </div>
             <p id="message"></p>
-            <textarea id="output" class="DataOutput"></textarea>
+            <textarea id="output" class="DataOutput" autocorrect="off"></textarea>
         </section>
     </div>
     <script type="text/javascript" src="download.js"></script>
     <script type="text/javascript">
+
+        const KICK_COLS = [
+            "allTimeKick",
+            "playerName",
+            "saved",
+            "direction",
+            "match",
+            "stadium",
+            "timeLimit",
+            "scoreLimit",
+            "scoreRed",
+            "scoreBlue",
+            "time",
+            "kick",
+            "kickType",
+            "fromName",
+            "fromTeam",
+            "fromX",
+            "fromY",
+            "toName",
+            "toTeam",
+            "toX",
+            "toY",
+            "assistName",
+            "assistX",
+            "assistY",
+            "assistTeam",
+        ];
+        const MATCH_COLS = [
+            "allTimeMatch",
+            "playerName",
+            "saved",
+            "size",
+            "match",
+            "stadium",
+            "timeLimit",
+            "scoreLimit",
+            "scoreRed",
+            "scoreBlue",
+            "time",
+            "playersBlue",
+            "playersRed",
+            "players",
+        ];
+
+        function protectCommas(val) {
+            const text = `${val}`;
+            if (text.indexOf(",") > -1) {
+                return `"${text.split(",").join("\,")}"`;
+            } else {
+                return text;
+            }
+        }
+
+        function formatSavedString(saved) {
+            return new Date(saved).toLocaleDateString("en-US", {
+                month: "numeric",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+            }).split(", ").join(" ");
+        }
+
+        function toAllTimeCSV(kickRes) {
+            const kickRows = combineKicks(kickRes).map((k) => {
+                k.allTimeKick = "allTimeKick";
+                k.playerName = kickRes.playerName;
+                k.saved = formatSavedString(k.saved);
+                k.kickType = k.type;
+                return KICK_COLS.map((col) => {
+                    if (col in k) {
+                        if (k[col] === 0) {
+                            return "0";
+                        }
+                        return protectCommas(k[col]);
+                    } else {
+                        return "";
+                    }
+                });
+            });
+            const matchRows = Object.keys(kickRes.matches).map((mid) => {
+                let summary = kickRes.matches[mid];
+                summary.allTimeMatch = "allTimeMatch";
+                summary.playerName = kickRes.playerName;
+                summary.saved = formatSavedString(summary.saved);
+                summary.match = summary.id;
+                return MATCH_COLS.map((col) => {
+                    if (col in summary) {
+                        if (summary[col] === 0) {
+                            return "0";
+                        }
+                        return protectCommas(summary[col]);
+                    } else {
+                        return "";
+                    }
+                });
+            });
+            const rows = [KICK_COLS, MATCH_COLS].concat(kickRows).concat(matchRows);
+            const csv = rows.map(r => r.join(",")).join("\n");
+            return csv;
+        }
                 
         const onLocal = document.location.hostname === "localhost"
         const forcedProd = document.location.href.indexOf("l=false") > -1;
@@ -114,25 +216,26 @@
         submitBtn.addEventListener("click", (e) => {
             const username = userInput.value;
             const format = formatInput.value;
-            console.log(username, );
             if (username) {
                 setLoading(true);
                 downloadAllTimeKicks(username).then((done) => {
                     const { kickRes, countMsg } = done;
                     kickRes.matches = allMatchMap;
-                    allMatchMap = {};
                     setLoading(false);
                     showMessage(msgEl, countMsg);
                     if (format === "JSON") {
-                        const allTimeData = JSON.stringify(kickRes, null, 2)
-                        outEl.value = allTimeData;
+                        const allTimeJSON = JSON.stringify(kickRes, null, 2)
+                        outEl.value = allTimeJSON;
                     } else if (format === "CSV") {
-
+                        const allTimeCSV = toAllTimeCSV(kickRes);
+                        outEl.value = allTimeCSV;
                     } else {
-                        const allTimeData = JSON.stringify(kickRes, null, 2)
-                        outEl.value = allTimeData;
+                        const allTimeJSON = JSON.stringify(kickRes, null, 2)
+                        outEl.value = allTimeJSON;
                         showMessage(msgEl, countMsg + `\nInvalid format: ${format}, using JSON.`);
                     }
+                    allMatchMap = {};
+                    allTimeKickMap = {};
                 }).catch((msg) => {
                     setLoading(false);
                     showMessage(msgEl, msg);
