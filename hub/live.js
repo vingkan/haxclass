@@ -34,6 +34,7 @@ function initializePlayer(playerMap, team, name) {
             shotsTaken: 0,
             shotsFaced: 0,
             savesMade: 0,
+            errorsAllowed: 0,
             ownGoals: 0,
             passesAttempted: 0,
             passesCompleted: 0,
@@ -84,6 +85,7 @@ function reduceLive(d, v, stadiums) {
             // Decrement shotsFaced so that own goal can increment it.
             toPlayer.shotsFaced--;
             toPlayer.savesMade--;
+            toPlayer.errorsAllowed++;
         }
     }
     if (v.type === "own_goal") {
@@ -195,7 +197,7 @@ function tableDefense(playerMap) {
     const rows = toList(playerMap).map((p) => {
         return {
             name: limitChars(p.name, 20),
-            ownGoals: p.ownGoals,
+            ownGoals: p.ownGoals - p.errorsAllowed,
             savesMade: p.savesMade,
             shotsFaced: p.shotsFaced,
             stealsTaken: p.stealsTaken,

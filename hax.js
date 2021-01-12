@@ -193,7 +193,7 @@ function inGoalArea(gp, pos) {
     if (!pos || !gp) {
         return null;
     }
-    const radius = GOAL_AREA_RADIUS * gp.size;;
+    const radius = GOAL_AREA_RADIUS * gp.size / 2;
     const mid = gp.mid;
     const d = Math.sqrt(
         Math.pow(pos.x - mid.x, 2) + Math.pow(pos.y - mid.y, 2)
@@ -555,6 +555,8 @@ room.onTeamVictory = async function(score) {
         const { id, name, team } = p;
         return { id, name, team };
     });
+    const finalPlayersRed = finalPlayers.filter((p) => p.team === TEAMS.Red);
+    const finalPlayersBlue = finalPlayers.filter((p) => p.team === TEAMS.Blue);
     const finalScore = roundScore(score);
     const summary = {
         scoreRed: finalScore.red,
@@ -562,6 +564,8 @@ room.onTeamVictory = async function(score) {
         time: finalScore.time,
         stadium: currentStadiumName,
         players: finalPlayers.map(p => p.name).join(", "),
+        playersRed: finalPlayersRed.map(p => p.name).join(", "),
+        playersBlue: finalPlayersBlue.map(p => p.name).join(", "),
     };
     const record = {
         score: finalScore,
