@@ -1,0 +1,24 @@
+{
+    "roomName": "haxball with ru",
+    "maxPlayers": 12,
+    "playerName": "HaxBot",
+    "noPlayer": true,
+    "public": true,
+    "password": "commies",
+
+    "streamLive": true,
+    "streamName": "ru",
+
+    "saveToFirebase": true,
+    "saveToLocal": false,
+    "showDebugMessages": false,
+    "collectTrace": false,
+
+    "scoreLimit": 3,
+    "timeLimit": 3,
+    "teamsLock": true,
+    "customStadium": "NAFL Official Map v1",
+
+    "colorsRed": "/colors red 60 FFFFFF EB1F10 BA0000 821010",
+    "colorsBlue": "/colors blue 60 FFFFFF 0080FF 0064BA 005282"
+}
