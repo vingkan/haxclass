@@ -293,7 +293,9 @@ class LiveMain extends React.Component {
         const clockLabel = d.isFinal ? "Final" : "Live";
         let problemEl;
         let message;
-        if (!hasStream) {
+        if (this.props.problem) {
+            message = this.props.problem;
+        } else if (!hasStream) {
             message = "No stream name/ID provided.";
         } else if (!d.stadium) {
             message = "No stadium provided from match livestream.";
@@ -401,7 +403,7 @@ class LiveMain extends React.Component {
                         <p>Processed {plur(d.nEvents, "event")}.</p>
                     </div>
                 </section>
-                <section>
+                <section style={{display: this.props.streamName ? "block" : "none"}}>
                     <div className="CardFake">
                         <div className="Picker">
                             <span className="Sub">
@@ -409,7 +411,6 @@ class LiveMain extends React.Component {
                                 <input
                                     type="text"
                                     placeholder="Match ID"
-                                    style={{display: this.props.streamName ? "inline-block" : "none"}}
                                     onKeyPress={(e) => {
                                         const code = e.keyCode ? e.keyCode : e.which;
                                         if (code === 13) {
@@ -422,7 +423,7 @@ class LiveMain extends React.Component {
                                                     component.setState({ newStreamIdMsg: msg });
                                                     component.props.setNewStreamId(newStreamId);    
                                                 } else {
-                                                    const msg = `No stream ID found for match ID: ${mid}`;
+                                                    const msg = `No stream ID found for match ID ${mid} in stream ${streamName}.`;
                                                     component.setState({ newStreamIdMsg: msg });
                                                 }
                                                 component.setState({ isLoading: false });
@@ -474,10 +475,11 @@ function maybeGetStreamId(checkStream, mid, callback) {
 const url = document.location.href;
 let streamName = getParam(url, "n");
 let streamId = getParam(url, "i");
+let matchId = getParam(url, "m");
 let liveRef;
 let liveListener;
 
-function renderMain(name, id, stadiums) {
+function renderMain(name, id, stadiums, msg=null) {
     const mainEl = document.getElementById("main");
     const mainRe = (
         <LiveMain
@@ -492,6 +494,7 @@ function renderMain(name, id, stadiums) {
                 streamId = newStreamId
                 start(stadiums);
             }}
+            problem={msg}
         />
     );
     ReactDOM.unmountComponentAtNode(mainEl);
@@ -504,6 +507,16 @@ function start(stadiums) {
     }
     if (!streamName) {
         renderMain(null, null, stadiums);
+    } else if (matchId) {
+        maybeGetStreamId(streamName, matchId, (newStreamId) => {
+            if (newStreamId) {
+                streamId = newStreamId
+                renderMain(streamName, streamId, stadiums);
+            } else {
+                const msg = `The match ID ${matchId} was not found in the live stream for ${streamName}.`;
+                renderMain(null, null, stadiums, msg);
+            }
+        });
     } else if (streamId) {
         renderMain(streamName, streamId, stadiums);    
     } else {

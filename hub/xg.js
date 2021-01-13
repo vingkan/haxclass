@@ -249,6 +249,11 @@ class XGMain extends React.Component {
                             href={`./replay.html?m=${this.props.mid}${isLocal ? "&l=true" : ""}`}
                             target="_blank"
                         >Open Replay</a>
+                        <a
+                            className="Button__Round BtnPostGame"
+                            href={`./live.html?n=class&m=${this.props.mid}`}
+                            target="_blank"
+                        >Open Post-Game Stats</a>
                     </div>
                     <Field stadium={stadium} kicks={[]} style={{display: showField}}>
                         {this.state.fieldChildren}
