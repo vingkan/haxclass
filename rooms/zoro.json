@@ -5,6 +5,9 @@
     "noPlayer": true,
     "public": true,
 
+    "streamLive": true,
+    "streamName": "zoro",
+
     "saveToFirebase": true,
     "saveToLocal": false,
     "showDebugMessages": false,
