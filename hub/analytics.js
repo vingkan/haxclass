@@ -245,8 +245,11 @@ function Field(props) {
 
 function StatsTable(props) {
     const { headers, rows } = props.table;
+    const initialSearch = props.initialSearch ? `${props.initialSearch}` : "";
     const [sortCol, setSortCol] = React.useState(null);
     const [sortAsc, setSortAsc] = React.useState(false);
+    const [search, setSearch] = React.useState(initialSearch);
+    const showTitle = props.title || props.isSearchable;
     const sortBy = (col) => {
         return (e) => {
             if (col !== sortCol) {
@@ -283,9 +286,17 @@ function StatsTable(props) {
     const getRow = (p, i) => {
         return <tr key={i}>{getCells(p)}</tr>;
     };
-    let sortedRows = [ ...rows ];
+    let displayRows = [ ...rows ];
+    if (search.length > 0) {
+        displayRows = displayRows.filter((p) => {
+            const rowText = headers.map((col) => {
+                return p[col.key];
+            }).join(" ").toLowerCase();
+            return rowText.indexOf(search) > -1;
+        });
+    }
     if (sortCol !== null) {
-        sortedRows = sortedRows.sort((a, b) => {
+        displayRows = displayRows.sort((a, b) => {
             const aVal = maybeParseFloat(a[sortCol]);
             const bVal = maybeParseFloat(b[sortCol]);
             if (sortAsc) {
@@ -297,6 +308,21 @@ function StatsTable(props) {
     }
     return (
         <div className="StatsTable Full">
+            <div className="Picker TitleAndSearch" style={{display: showTitle ? "flex" : "none"}}>
+                <span className="Label Bold Title">{props.title}</span>
+                <span className="Sub">
+                    <input
+                        type="text"
+                        placeholder="Search"
+                        value={search}
+                        onChange={(e) => {
+                            const value = e.target.value.toLowerCase();
+                            setSearch(value);
+                        }}
+                        style={{display: props.isSearchable ? "inline-block" : "none"}}
+                    />
+                </span>
+            </div>
             <table>
                 <thead>
                     {headers.map((col) => {
@@ -315,7 +341,7 @@ function StatsTable(props) {
                     })}
                 </thead>
                 <tbody>
-                    {sortedRows.map(getRow)}
+                    {displayRows.map(getRow)}
                 </tbody>
             </table>
         </div>

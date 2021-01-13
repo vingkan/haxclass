@@ -346,42 +346,54 @@ class LiveMain extends React.Component {
                     <div className="Halves">
                         <div className="Half">
                             <div class="Card">
-                                <h3>Red Offense</h3>
-                                <StatsTable table={tableOffense(d.players.red)} />
+                                <StatsTable
+                                    table={tableOffense(d.players.red)}
+                                    title="Red Offense"
+                                />
                             </div>
                         </div>
                         <div className="Half">
                             <div class="Card">
-                                <h3>Blue Offense</h3>
-                                <StatsTable table={tableOffense(d.players.blue)} />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="Halves">
-                        <div className="Half">
-                            <div class="Card">
-                                <h3>Red Defense</h3>
-                                <StatsTable table={tableDefense(d.players.red)} />
-                            </div>
-                        </div>
-                        <div className="Half">
-                            <div class="Card">
-                                <h3>Blue Defense</h3>
-                                <StatsTable table={tableDefense(d.players.blue)} />
+                                <StatsTable
+                                    table={tableOffense(d.players.blue)}
+                                    title="Blue Offense"
+                                />
                             </div>
                         </div>
                     </div>
                     <div className="Halves">
                         <div className="Half">
                             <div class="Card">
-                                <h3>Red Time of Possession</h3>
-                                <StatsTable table={tablePossession(d.players, "red")} />
+                                <StatsTable
+                                    table={tableDefense(d.players.red)}
+                                    title="Red Defense"
+                                />
                             </div>
                         </div>
                         <div className="Half">
                             <div class="Card">
-                                <h3>Blue Time of Possession</h3>
-                                <StatsTable table={tablePossession(d.players, "blue")} />
+                                <StatsTable
+                                    table={tableDefense(d.players.blue)}
+                                    title="Blue Defense"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="Halves">
+                        <div className="Half">
+                            <div class="Card">
+                                <StatsTable
+                                    table={tablePossession(d.players, "red")}
+                                    title="Red Time of Possession"
+                                />
+                            </div>
+                        </div>
+                        <div className="Half">
+                            <div class="Card">
+                                <StatsTable
+                                    table={tablePossession(d.players, "blue")}
+                                    title="Blue Time of Possession"
+                                />
                             </div>
                         </div>
                     </div>

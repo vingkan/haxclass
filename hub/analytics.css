@@ -335,6 +335,7 @@ li {
     left: 0;
     width: 100%;
     padding: 0 10px;
+    background: rgba(9, 16, 31, 0.75);
 }
 
 .FakeHeader {
@@ -418,6 +419,19 @@ li {
 
 .StatsTable .SortArrow {
     font-size: 10px;
+}
+
+.StatsTable .TitleAndSearch {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    line-height: 22px;
+    padding: 0 4px;
+    margin-bottom: 4px;
+}
+
+.StatsTable .Title {
+    font-family: 'Quantico', sans-serif;
 }
 
 /* Download All-Time Kicks */

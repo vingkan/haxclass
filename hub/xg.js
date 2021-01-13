@@ -119,15 +119,35 @@ class XGMain extends React.Component {
         const data = props.data || {};
         const match = data.match || null;
         const stadium = match ? stadiums[match.stadium] || {} : {};
-        const firstKick = match ? match.kicks[0] : null;
+        let selectedKick = 0;
+        let kickSearch;
+        let firstKick = match ? match.kicks[0] : null;
+        if (match && props.timeToShow) {
+            const timeToShow = parseFloat(props.timeToShow);
+            if (!isNaN(timeToShow)) {
+                kickSearch = timeToShow;
+                const kicksAtTime = match.kicks.map((k, i) => {
+                    k.index = i;
+                    return k;
+                }).filter((k) => {
+                    return k.time === timeToShow;
+                });
+                if (kicksAtTime.length > 0) {
+                    firstKick = kicksAtTime[0];
+                    selectedKick = firstKick.index;
+                }
+            }
+        }
         const firstKickChildren = getFieldChildren(match, stadium, firstKick);
         this.state = {
             isLoading: props.stadiums ? false : true,
             mid: props.mid ? props.mid : null,
             model: props.model ? props.model : null,
             view: "field",
-            selectedKick: 0,
+            timeToShow: props.timeToShow,
             fieldChildren: firstKickChildren,
+            selectedKick,
+            kickSearch,
         };
     }
     render() {
@@ -236,7 +256,12 @@ class XGMain extends React.Component {
                     <div className="TimePlot" style={{display: showTimePlot}}>
                         {timePlotEl}
                     </div>
-                    <StatsTable table={xgTable} />
+                    <StatsTable
+                        table={xgTable}
+                        title={"Kicks"}
+                        initialSearch={this.state.kickSearch}
+                        isSearchable={true}
+                    />
                 </section>
             </div>
         );
@@ -246,6 +271,7 @@ class XGMain extends React.Component {
 const url = document.location.href;
 let matchID = getParam(url, "m");
 let clf = getParam(url, "clf");
+let timeToShow = getParam(url, "t") || null;
 let allStadiums = null;
 
 function renderMain(data, stadiums, problem=null) {
@@ -258,6 +284,7 @@ function renderMain(data, stadiums, problem=null) {
             stadiums={stadiums}
             loadMatchXG={loadMatchXG}
             problem={problem}
+            timeToShow={timeToShow}
         />
     );
     ReactDOM.unmountComponentAtNode(mainEl);
