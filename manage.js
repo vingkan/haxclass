@@ -129,3 +129,36 @@ if (script === "download_player") {
         process.exit(0);
     });
 }
+
+if (script === "elo") {
+    let nMatches = 50;
+    let stadium = "NAFL Official Map v1";
+    if (process.argv.length > 3) {
+        const nMatchesArg = process.argv[3];
+        if (!isNaN(nMatchesArg)) {
+            nMatches = parseInt(nMatchesArg);
+        }
+    }
+    if (process.argv.length > 4) {
+        stadium = process.argv[4];
+    }
+    const ref = db.ref("summary").orderByChild("stadium").equalTo(stadium).limitToLast(nMatches);
+    ref.once("value", (snap) => {
+        const val = snap.val();
+        Object.keys(val).map((k) => {
+            return val[k];
+        }).sort((a, b) => {
+            return a.saved - b.saved;
+        }).map((m) => {
+            return [
+                m.playersRed,
+                m.playersBlue,
+                m.scoreRed || 0,
+                m.scoreBlue || 0,
+            ].join("\t");
+        }).forEach((line) => {
+            console.log(line);
+        });
+        process.exit(0);
+    });
+}
