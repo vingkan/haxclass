@@ -14,6 +14,9 @@ function getParam(url, tag) {
 }
 
 function maybeParseFloat(val) {
+    if (!isNaN(val)) {
+        return val;
+    }
     const per = val.split("%")[0];
     if (!isNaN(per)) {
         return parseFloat(per);

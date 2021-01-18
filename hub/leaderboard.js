@@ -3,6 +3,23 @@ const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuap
 
 const INITIAL_ELO = 1500;
 
+// Source: https://gist.github.com/mucar/3898821
+const RANDOM_COLORS = [
+    "#FF6633", "#FFB399", "#FF33FF", "#FFFF99", "#00B3E6", 
+    "#E6B333", "#3366E6", "#999966", "#99FF99", "#B34D4D",
+    "#80B300", "#809900", "#E6B3B3", "#6680B3", "#66991A", 
+    "#FF99E6", "#CCFF1A", "#FF1A66", "#E6331A", "#33FFCC",
+    "#66994D", "#B366CC", "#4D8000", "#B33300", "#CC80CC", 
+    "#66664D", "#991AFF", "#E666FF", "#4DB3FF", "#1AB399",
+    "#E666B3", "#33991A", "#CC9999", "#B3B31A", "#00E680", 
+    "#4D8066", "#809980", "#E6FF80", "#1AFF33", "#999933",
+    "#FF3380", "#CCCC00", "#66E64D", "#4D80CC", "#9900B3", 
+    "#E64D66", "#4DB380", "#FF4D4D", "#99E6E6", "#6666FF"
+];
+
+Chart.defaults.global.defaultFontColor = "white";
+Chart.defaults.global.defaultFont = "Roboto";
+
 function getELOForTeamAverage(eloScores) {
     if (eloScores.length > 0) {
         return eloScores.reduce((agg, val) => agg + val, 0) / eloScores.length;
@@ -47,6 +64,7 @@ function getELOForMatchGoals(eloA, eloB, goalDiffA, k=40, d=400) {
 function ranksFromSummaries(rawSummaries, eloParams) {
     const summaries = rawSummaries ? rawSummaries : [];
     let rankedMatches = [];
+    let ratingHistory = [];
     const playerRankMap = summaries.reduce((playerMap, s) => {
         // Skip matches that don't split players by team.
         const hasPlayersByTeam = s.playersRed || s.playersBlue;
@@ -82,7 +100,7 @@ function ranksFromSummaries(rawSummaries, eloParams) {
                     losses: 0,
                     goalDiff: 0,
                     eloRating: INITIAL_ELO,
-                    eloHistory: [INITIAL_ELO],
+                    eloHistory: [ ...ratingHistory, INITIAL_ELO ],
                     winningStreak: false,
                     streakSize: 0,
                 };
@@ -167,6 +185,7 @@ function ranksFromSummaries(rawSummaries, eloParams) {
                 playerMap[name].eloHistory.push(currentELO);
             }
         });
+        ratingHistory.push(null);
         return playerMap;
     }, {});
     const rankedPlayers = toList(playerRankMap).sort((a, b) => {
@@ -255,13 +274,93 @@ function tableRankedMatches(rankedMatches) {
     return { headers, rows };
 }
 
+class ELOChart extends React.Component {
+    constructor (props) {
+        super(props);
+        this.canvasRef = React.createRef();
+    }
+    componentDidMount() {
+        const canvasEl = this.canvasRef.current;
+        const rankedPlayers = this.props.rankedPlayers;
+        if (rankedPlayers.length === 0) {
+            return;
+        }
+        const labels = rankedPlayers[0].eloHistory.map((p, i) => i);
+        const config = {
+            type: "line",
+            data: {
+                labels,
+                datasets: rankedPlayers.map((p, i) => {
+                    const seriesColor = RANDOM_COLORS[i % RANDOM_COLORS.length];
+                    return {
+                        label: p.name,
+                        fill: false,
+                        borderColor: seriesColor,
+                        backgroundColor: seriesColor,
+                        data: p.eloHistory.map(d => d ? d.toFixed(0) : d),
+                        hidden: i >= 10,
+                    };
+                }),
+            },
+            options: {
+                responsive: true,
+                tooltips: {
+                    mode: "index",
+                    intersect: false,
+                },
+                hover: {
+                    mode: "dataset",
+                    intersect: false
+                },
+                legend: {
+                    position: "bottom",
+                    align: "start"
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: "Match"
+                        },
+                        gridLines: {
+                            display: true,
+                            lineWidth: 0.5,
+                            color: "rgba(255, 255, 255, 0.25)"
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: "ELO Rating"
+                        },
+                        gridLines: {
+                            display: true,
+                            lineWidth: 0.5,
+                            color: "rgba(255, 255, 255, 0.25)"
+                        }
+                    }]
+                }
+            }
+        };
+        const ctx = canvasEl.getContext("2d");
+        const chart = new Chart(ctx, config);
+    }
+    render() {
+        return (
+            <div>
+                <canvas ref={this.canvasRef}></canvas>
+            </div>
+        );
+    }
+}
+
 function LeaderboardMain(props) {
     const [ isLoading, setIsLoading ] = React.useState(false);
     const eloParams = { k: 100, d: 400, mode: "binary", method: "average" };
     const { rankedPlayers, rankedMatches}  = ranksFromSummaries(props.summaries, eloParams);
     const nRankedMatches = plur(rankedMatches.length, "match", "matches");
-    console.log(rankedPlayers);
-    console.log(rankedMatches);
     return (
         <div className={`MainContainer Leaderboard ${isLoading ? "Loading" : ""}`}>
             <div className="Loader">
@@ -269,7 +368,16 @@ function LeaderboardMain(props) {
             </div>
             <section>
                 <h1>Leaderboard</h1>
-                <p>Rankings based on {nRankedMatches} over the last 6 hours.</p>
+                <p>
+                    <span>Rankings based on <span className="Bold">{nRankedMatches}</span></span>
+                    <span> on <span className="Bold">{props.stadium}</span></span>
+                    <span> over the <span className="Bold">last 6 hours</span>.</span>
+                </p>
+                <h3>ELO Ratings Over Time</h3>
+                <ELOChart
+                    rankedPlayers={rankedPlayers}
+                />
+                <br />
                 <StatsTable
                     table={tableRankedPlayers(rankedPlayers)}
                     title={"Ranked Players"}
@@ -286,27 +394,30 @@ function LeaderboardMain(props) {
     );
 }
 
+const HOUR_MS = 60 * 60 * 1000
+const fromTime = Date.now() - (6 * HOUR_MS);
+const STADIUM = "NAFL Official Map v1";
+
 function renderMain(summaries) {
     const mainEl = document.getElementById("main");
     const mainRe = (
         <LeaderboardMain
             summaries={summaries}
+            stadium={STADIUM}
         />
     );
     ReactDOM.unmountComponentAtNode(mainEl);
     ReactDOM.render(mainRe, mainEl);
 }
 
-let fromDate = new Date();
-fromDate.setHours(fromDate.getHours() - 6);
-
 renderMain(null);
-const summaryRef = db.ref("summary").orderByChild("saved").startAt(fromDate.getTime());
-summaryRef.once("value", (snap) => {
+const summaryRef = db.ref("summary").orderByChild("saved").startAt(fromTime);
+summaryRef.on("value", (snap) => {
     const val = snap.val();
-    const summaries = toList(val).sort((a, b) => {
+    const summaries = toList(val).filter((s) => {
+        return s.stadium === STADIUM;
+    }).sort((a, b) => {
         return a.saved - b.saved;
     });
-    console.log(summaries);
     renderMain(summaries);
 });
