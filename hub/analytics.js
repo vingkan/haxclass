@@ -86,6 +86,25 @@ function getAlpha(val, minVal, maxVal, minAlpha=0.1, maxAlpha=0.9) {
     }
 }
 
+function formatMatchTimeString(saved) {
+    return new Date(saved).toLocaleDateString("en-US", {
+        month: "numeric",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+    }).split(", ").join(" ");
+}
+
+function formatCompactMatchTimeString(saved) {
+    return new Date(saved).toLocaleDateString("en-US", {
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+    }).split(", ").join(" ");
+}
+
 /* Stadium and Field */
 
 const TEAMS = { 1: "red", 2: "blue", "1": "red", "2": "blue", Red: 1, Blue: 2 };

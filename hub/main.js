@@ -275,10 +275,11 @@ class Main extends React.Component {
                 </section>
                 <section className="Main__Nav">
                     <h2>View Analytics</h2>
-                    <a className="Button__Round Nav__Live" href="./live.html">Livestream Stats</a>
+                    <a className="Button__Round Nav__Live" href="./live.html">Live Stats</a>
+                    <a className="Button__Round Nav__Leaderboard" href="./leaderboard.html">Leaderboard</a>
                     <a className="Button__Round Nav__Player" href="./player.html">Player Comparison</a>
-                    <a className="Button__Round Nav__XG" href="./xg.html">Expected Goals</a>
                     <a className="Button__Round Nav__Download" href="./download.html">Download Data</a>
+                    <a className="Button__Round Nav__XG" href="./xg.html">XG</a>
                 </section>
                 <section className="Main__Search">
                     <h2>Find Match By ID</h2>
