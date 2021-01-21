@@ -20,6 +20,93 @@ const RANDOM_COLORS = [
 Chart.defaults.global.defaultFontColor = "white";
 Chart.defaults.global.defaultFont = "Roboto";
 
+/* Data Fetchers */
+
+function fetchRecentSummariesFromFirebase(since, callbackFn) {
+    const summaryRef = db.ref("summary").orderByChild("saved").startAt(since);
+    summaryRef.on("value", (snap) => {
+        const val = snap.val();
+        callbackFn(val);
+    });
+}
+
+function fetchRecentSummariesFromLocal(since, callbackFn) {
+    fetch("../mock/leaderboard_recent_summaries.json").then(async (done) => {
+        const res = await done.json();
+        callbackFn(res);
+    });
+}
+
+/* XG Data */
+
+function XGAccessor() {
+    let isStarted = false;
+    let nRequested = 0;
+    let nCompleted = 0;
+    let matches = {};
+    let requestedMatches = [];
+    let progressCallback;
+    let matchesCallback;
+    const requestMatchXG = (mid) => {
+        if (isStarted) {
+            if (!(mid in matches)) {
+                nRequested++;
+                if (progressCallback) {
+                    progressCallback(nCompleted, nRequested);
+                }
+                fetch(`${HAXML_SERVER}/xg/${mid}`).then(async (res) => {
+                    const xgData = await res.json();
+                    matches[mid] = xgData;
+                    nCompleted++;
+                    if (progressCallback) {
+                        progressCallback(nCompleted, nRequested);
+                    }
+                    if (matchesCallback) {
+                        matchesCallback(matches);
+                    }
+                }).catch((err) => {
+                    console.log(`Error getting XG for match ID : ${mid}`);
+                    console.error(err);
+                });
+            }
+        } else {
+            requestedMatches.push(mid);
+        }
+    };
+    let accessor = {
+        start: () => {
+            if (!isStarted) {
+                fetch(`${HAXML_SERVER}/hello`).then(async (done) => {
+                    const res = await done.text();
+                    isStarted = true;
+                    requestedMatches.forEach((mid) => {
+                        requestMatchXG(mid);
+                    });
+                    requestedMatches = [];
+                }).catch((err) => {
+                    console.log("Error connecting to HaxML server:");
+                    console.error(err);
+                });
+            }
+        },
+        request: (mid) => {
+            requestMatchXG(mid);
+        },
+        getMatches: () => {
+            return matches;
+        },
+        onProgress: (callbackFn) => {
+            progressCallback = callbackFn;
+        },
+        onMatches: (callbackFn) => {
+            matchesCallback = callbackFn;
+        }
+    };
+    return accessor;
+}
+
+/* ELO Ratings */
+
 function getELOForTeamAverage(eloScores) {
     if (eloScores.length > 0) {
         return eloScores.reduce((agg, val) => agg + val, 0) / eloScores.length;
@@ -358,9 +445,18 @@ class ELOChart extends React.Component {
 
 function LeaderboardMain(props) {
     const [ isLoading, setIsLoading ] = React.useState(false);
+    const [ xgProgress, setXGProgress ] = React.useState({ completed: 0, requested: 0 });
+    const xgRequested = plur(xgProgress.requested, "match", "matches");
     const eloParams = { k: 100, d: 400, mode: "binary", method: "average" };
     const { rankedPlayers, rankedMatches}  = ranksFromSummaries(props.summaries, eloParams);
     const nRankedMatches = plur(rankedMatches.length, "match", "matches");
+    const xgAccesor = props.xgAccesor;
+    xgAccesor.onProgress((completed, requested) => {
+        setXGProgress({ completed, requested });
+    });
+    xgAccesor.onMatches((matches) => {
+        console.log(matches);
+    });
     return (
         <div className={`MainContainer Leaderboard ${isLoading ? "Loading" : ""}`}>
             <div className="Loader">
@@ -368,10 +464,21 @@ function LeaderboardMain(props) {
             </div>
             <section>
                 <h1>Leaderboard</h1>
+                <button
+                    className="Button__Rounded"
+                    onClick={(e) => {
+                        xgAccesor.start();
+                    }}
+                >Get XG</button>
                 <p>
                     <span>Rankings based on <span className="Bold">{nRankedMatches}</span></span>
                     <span> on <span className="Bold">{props.stadium}</span></span>
                     <span> over the <span className="Bold">last 6 hours</span>.</span>
+                </p>
+                <p>
+                    <span>Loaded XG data for</span>
+                    <span> <span className="Bold">{xgProgress.completed}</span></span>
+                    <span> / <span className="Bold">{xgRequested}</span>.</span>
                 </p>
                 <h3>ELO Ratings Over Time</h3>
                 <ELOChart
@@ -395,8 +502,11 @@ function LeaderboardMain(props) {
 }
 
 const HOUR_MS = 60 * 60 * 1000
-const fromTime = Date.now() - (6 * HOUR_MS);
+const nowTime = isLocal ? new Date("1/17/2021 2:00 PM").getTime() : Date.now();
+const fromTime = nowTime - (6 * HOUR_MS);
 const STADIUM = "NAFL Official Map v1";
+const fetchSummaries = isLocal ? fetchRecentSummariesFromLocal : fetchRecentSummariesFromFirebase;
+const xgAccesor = XGAccessor();
 
 function renderMain(summaries) {
     const mainEl = document.getElementById("main");
@@ -404,6 +514,7 @@ function renderMain(summaries) {
         <LeaderboardMain
             summaries={summaries}
             stadium={STADIUM}
+            xgAccesor={xgAccesor}
         />
     );
     ReactDOM.unmountComponentAtNode(mainEl);
@@ -411,13 +522,16 @@ function renderMain(summaries) {
 }
 
 renderMain(null);
-const summaryRef = db.ref("summary").orderByChild("saved").startAt(fromTime);
-summaryRef.on("value", (snap) => {
-    const val = snap.val();
-    const summaries = toList(val).filter((s) => {
-        return s.stadium === STADIUM;
-    }).sort((a, b) => {
-        return a.saved - b.saved;
-    });
-    renderMain(summaries);
+fetchSummaries(fromTime, (val) => {
+    if (val) {
+        const summaries = toList(val).filter((s) => {
+            return s.stadium === STADIUM;
+        }).sort((a, b) => {
+            return a.saved - b.saved;
+        });
+        renderMain(summaries);
+        summaries.forEach((s) => {
+            xgAccesor.request(s.id);
+        });
+    }
 });
