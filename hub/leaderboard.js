@@ -205,20 +205,37 @@ function styleProb(prob) {
     };
 }
 
-function styleELO(elo, mi, ma) {
+function styleELO(elo, mi=1100, ma=1900) {
     return {
-        background: `rgba(${FUTSAL_RGB}, ${getAlpha(elo, 1100, 1900)})`,
+        background: `rgba(${FUTSAL_RGB}, ${getAlpha(elo, mi, ma)})`,
     };
+}
+
+function styleNoWrap(style={}) {
+    return {
+        ...style,
+        "white-space": "nowrap",
+    }
+}
+
+function styleWinner(winner, team) {
+    if (winner === team) {
+        return {
+            background: `rgba(${TEAM_RGB[team.toLowerCase()]}, 0.5)`,
+        };
+    }
+    return {};
 }
 
 function tableRankedPlayers(rankedPlayers) {
     const headers = [
-        { key: "rank", name: "Rank" },
+        { key: "rank", name: "#" },
+        { key: "eloRating", name: "ELO", style: (r) => styleELO(r.eloRating) },
         { key: "name", name: "Player" },
-        { key: "matches", name: "Matches" },
-        { key: "wins", name: "Wins" },
-        { key: "losses", name: "Losses" },
-        { key: "eloRating", name: "ELO Rating", style: (r) => styleELO(r.eloRating) },
+        { key: "matches", name: "N" },
+        { key: "wins", name: "W" },
+        { key: "losses", name: "L" },
+        { key: "winRate", name: "Win %", style: (r) => styleProb(r.winRate) },
         { key: "goalDiff", name: "Goal Diff" },
         { key: "streak", name: "Streak" },
     ];
@@ -231,6 +248,7 @@ function tableRankedPlayers(rankedPlayers) {
             matches: p.wins + p.losses,
             wins: p.wins,
             losses: p.losses,
+            winRate: (p.wins / (p.wins + p.losses)).toFixed(3),
             elo: p.eloRating,
             eloRating: (p.eloRating).toFixed(0),
             goalDiff: diff > 0 ? `+${diff}` : diff,
@@ -242,14 +260,16 @@ function tableRankedPlayers(rankedPlayers) {
 
 function tableRankedMatches(rankedMatches) {
     const headers = [
-        { key: "saved", name: "Date/Time" },
+        { key: "index", name: "#" },
+        { key: "saved", name: "Time", style: (r) => styleNoWrap() },
+        { key: "winner", name: "Winner", style: (r) => styleWinner(r.winner, r.winner) },
         { key: "duration", name: "Duration" },
-        { key: "winner", name: "Winner" },
         { key: "winProb", name: "Win Prob", style: (r) => styleProb(r.winProb) },
         { key: "finalScore", name: "Final Score" },
-        { key: "teamRed", name: "Red Team" },
+        { key: "eloDelta", name: "ΔELO", style: (r) => styleELO(r.eloMatch, 25, 175) },
+        { key: "teamRed", name: "Red Team", style: (r) => styleWinner(r.winner, "Red") },
         { key: "eloRatingRed", name: "Red ELO", style: (r) => styleELO(r.eloRed) },
-        { key: "teamBlue", name: "Blue Team" },
+        { key: "teamBlue", name: "Blue Team", style: (r) => styleWinner(r.winner, "Blue") },
         { key: "eloRatingBlue", name: "Blue ELO", style: (r) => styleELO(r.eloBlue) },
     ];
     const rows = rankedMatches.sort((a, b) => {
@@ -258,11 +278,14 @@ function tableRankedMatches(rankedMatches) {
         const redWon = m.scoreRed > m.scoreBlue;
         const winProb = redWon ? m.winProbRed : m.winProbBlue;
         return {
-            saved: formatCompactMatchTimeString(m.saved),
+            "index": rankedMatches.length - i,
+            saved: formatMatchTimeOnlyString(m.saved),
             duration: toClock(m.time),
             winner: redWon ? "Red" : "Blue",
             winProb: winProb.toFixed(3),
             finalScore: `${m.scoreRed} - ${m.scoreBlue}`,
+            eloMatch: m.eloMatch,
+            eloDelta: m.eloMatch.toFixed(0),
             teamRed: m.playersRed.map(p => p.name).join(", "),
             eloRed: m.eloRed,
             eloRatingRed: m.eloRed.toFixed(0),
@@ -277,10 +300,11 @@ function tableRankedMatches(rankedMatches) {
 class ELOChart extends React.Component {
     constructor (props) {
         super(props);
-        this.canvasRef = React.createRef();
+        this.ref = React.createRef();
     }
     componentDidMount() {
-        const canvasEl = this.canvasRef.current;
+        const el = this.ref.current;
+        const canvasEl = el.querySelector("canvas");
         const rankedPlayers = this.props.rankedPlayers;
         if (rankedPlayers.length === 0) {
             return;
@@ -346,11 +370,28 @@ class ELOChart extends React.Component {
         };
         const ctx = canvasEl.getContext("2d");
         const chart = new Chart(ctx, config);
+        this.chart = chart;
+        const toggleBtn = el.querySelector("button");
+        let isHidden = true;
+        toggleBtn.addEventListener("click", (e) => {
+            isHidden = !isHidden;
+            chart.data.datasets.forEach((series) => {
+                series.hidden = isHidden;
+            });
+            chart.update();
+            toggleBtn.innerText = isHidden ? "Show All" : "Hide All";
+        });
+    }
+    componentWillUnmount() {
+        if (this.chart) {
+            this.chart.destroy();
+        }
     }
     render() {
         return (
-            <div>
-                <canvas ref={this.canvasRef}></canvas>
+            <div className="ELOChart" ref={this.ref}>
+                <canvas></canvas>
+                <button className="ELOChart__Toggle">Show All</button>
             </div>
         );
     }
