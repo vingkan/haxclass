@@ -309,7 +309,7 @@ class ELOChart extends React.Component {
                     intersect: false,
                 },
                 hover: {
-                    mode: "dataset",
+                    mode: "nearest",
                     intersect: false
                 },
                 legend: {
@@ -358,7 +358,7 @@ class ELOChart extends React.Component {
 
 function LeaderboardMain(props) {
     const [ isLoading, setIsLoading ] = React.useState(false);
-    const eloParams = { k: 100, d: 400, mode: "binary", method: "average" };
+    const eloParams = { k: 100, d: 400, mode: "goals", method: "average" };
     const { rankedPlayers, rankedMatches}  = ranksFromSummaries(props.summaries, eloParams);
     const nRankedMatches = plur(rankedMatches.length, "match", "matches");
     return (
