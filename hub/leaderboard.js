@@ -411,7 +411,7 @@ function LeaderboardMain(props) {
                 <h1>Leaderboard</h1>
                 <p>
                     <span>Rankings based on <span className="Bold">{nRankedMatches}</span></span>
-                    <span> on <span className="Bold">{props.stadium}</span></span>
+                    <span> of <span className="Bold">{props.stadiumFilter.name}</span></span>
                     <span> over the <span className="Bold">last 6 hours</span>.</span>
                 </p>
                 <h3>ELO Ratings Over Time</h3>
@@ -437,14 +437,22 @@ function LeaderboardMain(props) {
 
 const HOUR_MS = 60 * 60 * 1000
 const fromTime = Date.now() - (6 * HOUR_MS);
-const STADIUM = "NAFL Official Map v1";
+const stadiumFilter = {
+    name: "Futsal (3v3 and 4v4)",
+    stadiums: {
+        "NAFL Official Map v1": true,
+        "FUTHAX 4v4": true,
+        "Futsal x3": true,
+        "WFL - 4v4": true,
+    }
+};
 
 function renderMain(summaries) {
     const mainEl = document.getElementById("main");
     const mainRe = (
         <LeaderboardMain
             summaries={summaries}
-            stadium={STADIUM}
+            stadiumFilter={stadiumFilter}
         />
     );
     ReactDOM.unmountComponentAtNode(mainEl);
@@ -456,7 +464,7 @@ const summaryRef = db.ref("summary").orderByChild("saved").startAt(fromTime);
 summaryRef.on("value", (snap) => {
     const val = snap.val();
     const summaries = toList(val).filter((s) => {
-        return s.stadium === STADIUM;
+        return s.stadium in stadiumFilter.stadiums;
     }).sort((a, b) => {
         return a.saved - b.saved;
     });
