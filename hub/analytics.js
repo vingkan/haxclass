@@ -15,7 +15,7 @@ function getParam(url, tag) {
 
 function maybeParseFloat(val) {
     if (!isNaN(val)) {
-        return val;
+        return parseFloat(val);
     }
     const per = val.split("%")[0];
     if (!isNaN(per)) {
@@ -106,6 +106,13 @@ function formatCompactMatchTimeString(saved) {
         hour: "numeric",
         minute: "numeric",
     }).split(", ").join(" ");
+}
+
+function formatMatchTimeOnlyString(saved) {
+    return new Date(saved).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "numeric",
+    });
 }
 
 /* Stadium and Field */

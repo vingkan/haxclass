@@ -541,3 +541,27 @@ li {
 .BtnPostGame {
     background: #f59d78;
 }
+
+/* Leaderboard */
+
+.ELOChart {
+    position: relative;
+}
+
+.ELOChart__Toggle {
+    position: absolute;
+    bottom: 3px;
+    right: 0;
+    padding: 5px;
+    border-radius: 5px;
+    background: var(--color-light);
+    color: white;
+    border: none;
+    outline: none;
+}
+
+.ELOChart__Toggle:hover {
+    cursor: pointer;
+    background: white;
+    color: var(--color-light);
+}
