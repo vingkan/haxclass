@@ -162,3 +162,28 @@ if (script === "elo") {
         process.exit(0);
     });
 }
+
+if (script === "leaderboard") {
+    const HOUR_MS = 60 * 60 * 1000
+    const fromTime = Date.now() - (6 * HOUR_MS);
+    let since = fromTime;
+    let until = Date.now();
+    if (process.argv.length > 3) {
+        const timeStr = process.argv[3];
+        since = new Date(timeStr).getTime();
+        until = since + (6 * HOUR_MS);
+    }
+    const summaryRef = db.ref("summary").orderByChild("saved").startAt(since).endAt(until);
+    summaryRef.once("value", (snap) => {
+        const val = snap.val();
+        if (val) {
+            const data = JSON.stringify(val, null, 2);
+            fs.writeFileSync(`./mock/leaderboard_recent_summaries.json`, data);
+            console.log(`Saved ${Object.keys(val).length} matches.`);
+            process.exit(0);
+        } else {
+            console.log(`No matches found six hours after the given time.`);
+            process.exit(0);
+        }
+    });
+}

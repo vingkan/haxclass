@@ -386,6 +386,11 @@ li {
     line-height: 16px;
 }
 
+.StatsTable .TableHolder {
+    /*width: 100%;
+    overflow-x: scroll;*/
+}
+
 .StatsTable.Full table {
     width: 100%;
     border: none;
@@ -404,11 +409,32 @@ li {
     padding-bottom: 5px;
     border-bottom: 1px solid white;
     font-weight: bold;
+    position: relative;
+}
+
+.StatsTable th.HasDescription {
+    text-decoration: underline solid var(--color-futsal);
 }
 
 .StatsTable tr:hover, .StatsTable th:hover {
     background: var(--color-light);
     cursor: pointer;
+}
+
+.StatsTable .Description {
+    display: none;
+    position: absolute;
+    background: var(--color-light);
+    color: white;
+    padding: 5px;
+    font-weight: normal;
+    bottom: 100%;
+    left: 0;
+    z-index: 5;
+}
+
+.StatsTable th.HasDescription:hover .Description {
+    display: block;
 }
 
 .StatsTable th.Sorted {
@@ -544,14 +570,7 @@ li {
 
 /* Leaderboard */
 
-.ELOChart {
-    position: relative;
-}
-
-.ELOChart__Toggle {
-    position: absolute;
-    bottom: 3px;
-    right: 0;
+.Btn__Small {
     padding: 5px;
     border-radius: 5px;
     background: var(--color-light);
@@ -560,8 +579,18 @@ li {
     outline: none;
 }
 
-.ELOChart__Toggle:hover {
+.Btn__Small:hover {
     cursor: pointer;
     background: white;
     color: var(--color-light);
+}
+
+.ELOChart {
+    position: relative;
+}
+
+.ELOChart__Toggle {
+    position: absolute;
+    bottom: 3px;
+    right: 0;
 }

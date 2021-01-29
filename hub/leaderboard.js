@@ -2,6 +2,7 @@ const isLocal = document.location.hostname === "localhost" && document.location.
 const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuapp.com";
 
 const INITIAL_ELO = 1500;
+const PURPLE_RGB = `103,102,253`;
 
 // Source: https://gist.github.com/mucar/3898821
 const RANDOM_COLORS = [
@@ -64,6 +65,9 @@ function XGAccessor() {
                     if (matchesCallback) {
                         matchesCallback(matches);
                     }
+                    if (!xgData.success) {
+                        console.log(xgData);
+                    }
                 }).catch((err) => {
                     console.log(`Error getting XG for match ID : ${mid}`);
                     console.error(err);
@@ -100,6 +104,9 @@ function XGAccessor() {
         },
         onMatches: (callbackFn) => {
             matchesCallback = callbackFn;
+        },
+        hasData: () => {
+            return nCompleted > 0;
         }
     };
     return accessor;
@@ -286,9 +293,134 @@ function ranksFromSummaries(rawSummaries, eloParams) {
     return { rankedPlayers, rankedMatches };
 }
 
-function styleProb(prob) {
+const defaultPlayerRecord = () => {
     return {
-        background: `rgba(${FUTSAL_RGB}, ${prob})`,
+        matches: {},
+        totalGoals: 0,
+        totalXG: 0,
+        totalSaves: 0,
+        totalAssists: 0,
+        matchesGK: 0,
+        goalsAllowed: 0,
+        xgFaced: 0,
+        sumPos: 0,
+        posOff: 0,
+        posDef: 0,
+        nPos: 0,
+    };
+};
+
+const defaultMatchRecord = () => {
+    return {
+        xgRed: 0,
+        xgBlue: 0,
+    }
+};
+
+function statsFromXG(xgMap) {
+    let xgPlayers = {};
+    let xgMatches = {};
+    toList(xgMap).forEach(({ success, mid, match }) => {
+        if (!success) return;
+        match.goals.forEach((g) => {
+            const assistName = g.assistName;
+            if (!assistName) return;
+            if (!(assistName in xgPlayers)) {
+                xgPlayers[assistName] = defaultPlayerRecord();
+            }
+            xgPlayers[assistName].matches[mid] = true;
+            if (assistName) {
+                xgPlayers[assistName].totalAssists++;
+            }
+        });
+        let teamXG = { "red": 0, "blue": 0 };
+        match.kicks.forEach((k) => {
+            const fromName = k.fromName;
+            const toName = k.toName;
+            if (!(fromName in xgPlayers)) {
+                xgPlayers[fromName] = defaultPlayerRecord();
+            }
+            if (!(toName in xgPlayers)) {
+                xgPlayers[toName] = defaultPlayerRecord();
+            }
+            xgPlayers[fromName].matches[mid] = true;
+            xgPlayers[toName].matches[mid] = true;
+            xgPlayers[fromName].totalXG += k.xg;
+            teamXG[k.fromTeam] += k.xg;
+            if (k.type === "goal" || k.type === "error") {
+                xgPlayers[fromName].totalGoals++;
+            }
+            if (k.type === "save") {
+                xgPlayers[toName].totalSaves++;
+            }
+        });
+        let posMap = {};
+        match.positions.forEach((p) => {
+            if (p.type === "player") {
+                // Count positions for each player.
+                const name = p.name;
+                if (!(name in xgPlayers)) {
+                    xgPlayers[name] = defaultPlayerRecord();
+                }
+                xgPlayers[name].matches[mid] = true;
+                // Count positions for each match.
+                if (!(name in posMap)) {
+                    posMap[name] = {
+                        name: name,
+                        team: p.team,
+                        sumPos: 0,
+                        nPos: 0,
+                    };
+                }
+                // Mirror positions so defense has negative X and offense has positive X.
+                const pos = p.team === "red" ? p.x : -1 * p.x;
+                if (pos <= 0) {
+                    xgPlayers[name].posDef++;
+                } else {
+                    xgPlayers[name].posOff++;
+                }
+                xgPlayers[name].sumPos += pos;
+                xgPlayers[name].nPos++;
+                posMap[name].sumPos += pos;
+                posMap[name].nPos++;
+            }
+        });
+        const getGK = (matchPosMap, team) => {
+            let lowestPos = Infinity;
+            let gkName = null;
+            toList(matchPosMap).forEach((p) => {
+                if (p.team !== team) return;
+                if (p.sumPos < lowestPos) {
+                    lowestPos = p.sumPos;
+                    gkName = p.name;
+                }
+            });
+            return gkName;
+        }
+        const redGK = getGK(posMap, "red");
+        const blueGK = getGK(posMap, "blue");
+        if (!(redGK in xgPlayers)) {
+            xgPlayers[redGK].matches[mid] = true;
+        }
+        if (!(blueGK in xgPlayers)) {
+            xgPlayers[blueGK].matches[mid] = true;
+        }
+        xgPlayers[redGK].matchesGK++;
+        xgPlayers[blueGK].matchesGK++;
+        xgPlayers[redGK].goalsAllowed += match.score.blue;
+        xgPlayers[blueGK].goalsAllowed += match.score.red;
+        xgPlayers[redGK].xgFaced += teamXG.blue;
+        xgPlayers[blueGK].xgFaced += teamXG.red;
+        xgMatches[mid] = defaultMatchRecord();
+        xgMatches[mid].xgRed = teamXG.red;
+        xgMatches[mid].xgBlue = teamXG.blue;
+    });
+    return { xgPlayers, xgMatches };
+}
+
+function styleProb(prob, rgb=FUTSAL_RGB) {
+    return {
+        background: `rgba(${rgb}, ${prob})`,
     };
 }
 
@@ -319,11 +451,11 @@ function tableRankedPlayers(rankedPlayers) {
         { key: "rank", name: "#" },
         { key: "eloRating", name: "ELO", style: (r) => styleELO(r.eloRating) },
         { key: "name", name: "Player" },
-        { key: "matches", name: "N" },
-        { key: "wins", name: "W" },
-        { key: "losses", name: "L" },
-        { key: "winRate", name: "Win %", style: (r) => styleProb(r.winRate) },
-        { key: "goalDiff", name: "Goal Diff" },
+        { key: "matches", name: "N", desc: "Matches Played" },
+        { key: "wins", name: "W", desc: "Wins" },
+        { key: "losses", name: "L", desc: "Losses" },
+        { key: "winRate", name: "Win%", style: (r) => styleProb(r.winRate) },
+        { key: "goalDiff", name: "Diff", desc: "Goal Differential" },
         { key: "streak", name: "Streak" },
     ];
     const rows = rankedPlayers.map((p, i) => {
@@ -335,7 +467,7 @@ function tableRankedPlayers(rankedPlayers) {
             matches: p.wins + p.losses,
             wins: p.wins,
             losses: p.losses,
-            winRate: (p.wins / (p.wins + p.losses)).toFixed(3),
+            winRate: (p.wins / (p.wins + p.losses)).toFixed(2),
             elo: p.eloRating,
             eloRating: (p.eloRating).toFixed(0),
             goalDiff: diff > 0 ? `+${diff}` : diff,
@@ -343,6 +475,99 @@ function tableRankedPlayers(rankedPlayers) {
         };
     });
     return { headers, rows };
+}
+
+function tableRankedPlayersWithXG(xgPlayers) {
+    return (rankedPlayers) => {
+        const playerTable = tableRankedPlayers(rankedPlayers);
+        const headers = [
+            ...playerTable.headers,
+            { key: "role", name: "Role" },
+            { key: "goals", name: "G", desc: "Total Goals Scored" },
+            { key: "assists", name: "A", desc: "Total Assists" },
+            { key: "saves", name: "S", desc: "Total Saves" },
+            { key: "matchesGK", name: "GK", desc: "Matches as GK" },
+            {
+                key: "avgGoals",
+                name: "GpG",
+                desc: "Goals Scored per Game",
+                style: (r) => styleProb(r.avgGoals, TEAM_RGB.red)
+            },
+            {
+                key: "avgXG",
+                name: "XGpG",
+                desc: "Expected Goals Scored per Game",
+                style: (r) => styleProb(r.avgXG, TEAM_RGB.red)
+            },
+            // {
+            //     key: "avgSaves",
+            //     name: "SpG",
+            //     desc: "Saves per Game",
+            //     style: (r) => styleProb(r.avgSaves)
+            // },
+            {
+                key: "avgGAShow",
+                name: "GApG",
+                desc: "Goals Allowed per Game",
+                style: (r) => styleProb(r.avgGAAlpha, TEAM_RGB.blue)
+            },
+            {
+                key: "avgXGAShow",
+                name: "XGApG",
+                desc: "Expected Goals Allowed per Game",
+                style: (r) => styleProb(r.avgXGAAlpha, TEAM_RGB.blue)
+            },
+            {
+                key: "fracOff",
+                name: "Off%",
+                desc: "% Time on Offense",
+                style: (r) => styleProb(r.fracOff, PURPLE_RGB)
+            },
+        ];
+        const rows = playerTable.rows.map((row) => {
+            const p = xgPlayers[row.name] || defaultPlayerRecord();
+            const n = Object.keys(p.matches).length;
+            const fracOff = div(p.posOff, p.nPos, 2);
+            const fracGK = div(p.matchesGK, n, 2);
+            const hasGK = p.matchesGK > 0;
+            const avgGA = div(p.goalsAllowed, p.matchesGK, 2);
+            const avgXGA = div(p.xgFaced, p.matchesGK, 2);
+            let role;
+            if (fracOff > 0.5) {
+                role = "FWD";
+            } else if (fracOff > 0.35) {
+                role = "MID";
+            } else if (fracGK > 0.333) {
+                role = "GK";
+            } else {
+                role = "DEF";
+            }
+            const alphaGA = (ga) => {
+                return 1 - (Math.min(ga, 3) / 3);
+            };
+            return {
+                ...row,
+                xgn: n,
+                goals: p.totalGoals,
+                assists: p.totalAssists,
+                avgGoals: div(p.totalGoals, n, 2),
+                avgXG: div(p.totalXG, n, 2),
+                saves: p.totalSaves,
+                avgSaves: div(p.totalSaves, n, 2),
+                hasGK: hasGK,
+                matchesGK: p.matchesGK,
+                avgGA: avgGA,
+                avgXGA: avgXGA,
+                avgGAAlpha: hasGK ? alphaGA(avgGA) : 0,
+                avgXGAAlpha: hasGK ? alphaGA(avgXGA) : 0,
+                avgGAShow: hasGK ? avgGA : "N/A",
+                avgXGAShow: hasGK ? avgXGA : "N/A",
+                fracOff: fracOff,
+                role: role,
+            };
+        });
+        return { headers, rows };
+    }
 }
 
 function tableRankedMatches(rankedMatches) {
@@ -355,9 +580,9 @@ function tableRankedMatches(rankedMatches) {
         { key: "finalScore", name: "Final Score" },
         { key: "eloDelta", name: "ΔELO", style: (r) => styleELO(r.eloMatch, 25, 175) },
         { key: "teamRed", name: "Red Team", style: (r) => styleWinner(r.winner, "Red") },
-        { key: "eloRatingRed", name: "Red ELO", style: (r) => styleELO(r.eloRed) },
+        { key: "eloRatingRed", name: "ELO", style: (r) => styleELO(r.eloRed) },
         { key: "teamBlue", name: "Blue Team", style: (r) => styleWinner(r.winner, "Blue") },
-        { key: "eloRatingBlue", name: "Blue ELO", style: (r) => styleELO(r.eloBlue) },
+        { key: "eloRatingBlue", name: "ELO", style: (r) => styleELO(r.eloBlue) },
     ];
     const rows = rankedMatches.sort((a, b) => {
         return b.saved - a.saved;
@@ -365,6 +590,7 @@ function tableRankedMatches(rankedMatches) {
         const redWon = m.scoreRed > m.scoreBlue;
         const winProb = redWon ? m.winProbRed : m.winProbBlue;
         return {
+            id: m.id,
             "index": rankedMatches.length - i,
             saved: formatMatchTimeOnlyString(m.saved),
             duration: toClock(m.time),
@@ -382,6 +608,34 @@ function tableRankedMatches(rankedMatches) {
         };
     });
     return { headers, rows };
+}
+
+function tableRankedMatchesWithXG(xgMatches) {
+    return (rankedMatches) => {
+        const matchTable = tableRankedMatches(rankedMatches);
+        const nOrigCols = matchTable.headers.length;
+        const headers = [
+            ...matchTable.headers.slice(0, nOrigCols - 2),
+            { key: "xgRed", name: "XG", style: (r) => styleProb(r.xgRedAlpha, TEAM_RGB.red) },
+            ...matchTable.headers.slice(nOrigCols - 2, nOrigCols),
+            { key: "xgBlue", name: "XG", style: (r) => styleProb(r.xgBlueAlpha, TEAM_RGB.blue) },
+        ];
+        const rows = matchTable.rows.map((row) => {
+            const hasXG = row.id in xgMatches;
+            const m = xgMatches[row.id] || defaultMatchRecord();
+            const alphaXG = (xg) => {
+                return Math.min(xg, 3) / 3;
+            };
+            return {
+                ...row,
+                xgRedAlpha: alphaXG(m.xgRed),
+                xgBlueAlpha: alphaXG(m.xgBlue),
+                xgRed: hasXG ? m.xgRed.toFixed(2) : "N/A",
+                xgBlue: hasXG ? m.xgBlue.toFixed(2) : "N/A",
+            };
+        });
+        return { headers, rows };
+    }
 }
 
 class ELOChart extends React.Component {
@@ -478,7 +732,7 @@ class ELOChart extends React.Component {
         return (
             <div className="ELOChart" ref={this.ref}>
                 <canvas></canvas>
-                <button className="ELOChart__Toggle">Show All</button>
+                <button className="Btn__Small ELOChart__Toggle">Show All</button>
             </div>
         );
     }
@@ -487,17 +741,21 @@ class ELOChart extends React.Component {
 function LeaderboardMain(props) {
     const [ isLoading, setIsLoading ] = React.useState(false);
     const [ xgProgress, setXGProgress ] = React.useState({ completed: 0, requested: 0 });
+    const [ xgData, setXGData ] = React.useState({});
     const xgRequested = plur(xgProgress.requested, "match", "matches");
     const eloParams = { k: 100, d: 400, mode: "binary", method: "average" };
     const { rankedPlayers, rankedMatches}  = ranksFromSummaries(props.summaries, eloParams);
+    const { xgPlayers, xgMatches } = statsFromXG(xgData);
     const nRankedMatches = plur(rankedMatches.length, "match", "matches");
-    const xgAccesor = props.xgAccesor;
-    xgAccesor.onProgress((completed, requested) => {
+    const xgAccessor = props.xgAccessor;
+    xgAccessor.onProgress((completed, requested) => {
         setXGProgress({ completed, requested });
     });
-    xgAccesor.onMatches((matches) => {
-        console.log(matches);
+    xgAccessor.onMatches((matches) => {
+        setXGData(matches);
     });
+    const tablePlayers = xgAccessor.hasData() ? tableRankedPlayersWithXG(xgPlayers) : tableRankedPlayers;
+    const tableMatches = xgAccessor.hasData() ? tableRankedMatchesWithXG(xgMatches) : tableRankedMatches;
     return (
         <div className={`MainContainer Leaderboard ${isLoading ? "Loading" : ""}`}>
             <div className="Loader">
@@ -505,35 +763,38 @@ function LeaderboardMain(props) {
             </div>
             <section>
                 <h1>Leaderboard</h1>
-                <button
-                    className="Button__Rounded"
-                    onClick={(e) => {
-                        xgAccesor.start();
-                    }}
-                >Get XG</button>
                 <p>
                     <span>Rankings based on <span className="Bold">{nRankedMatches}</span></span>
                     <span> of <span className="Bold">{props.stadiumFilter.name}</span></span>
                     <span> over the <span className="Bold">last 6 hours</span>.</span>
                 </p>
-                <p>
-                    <span>Loaded XG data for</span>
-                    <span> <span className="Bold">{xgProgress.completed}</span></span>
-                    <span> / <span className="Bold">{xgRequested}</span>.</span>
-                </p>
                 <h3>ELO Ratings Over Time</h3>
                 <ELOChart
                     rankedPlayers={rankedPlayers}
                 />
-                <br />
+                <p style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>
+                        <button
+                            className="Btn__Small"
+                            onClick={(e) => {
+                                xgAccessor.start();
+                            }}
+                        >Show Extended Stats</button>
+                    </span>
+                    <span>
+                        <span>Loaded extended stats for</span>
+                        <span> <span className="Bold">{xgProgress.completed}</span></span>
+                        <span> / <span className="Bold">{xgRequested}</span>.</span>
+                    </span>
+                </p>
                 <StatsTable
-                    table={tableRankedPlayers(rankedPlayers)}
+                    table={tablePlayers(rankedPlayers)}
                     title={"Ranked Players"}
                     isSearchable={true}
                 />
                 <br />
                 <StatsTable
-                    table={tableRankedMatches(rankedMatches)}
+                    table={tableMatches(rankedMatches)}
                     title={"Ranked Matches"}
                     isSearchable={true}
                 />
@@ -546,7 +807,7 @@ const HOUR_MS = 60 * 60 * 1000
 const nowTime = isLocal ? new Date("1/17/2021 2:00 PM").getTime() : Date.now();
 const fromTime = nowTime - (6 * HOUR_MS);
 const fetchSummaries = isLocal ? fetchRecentSummariesFromLocal : fetchRecentSummariesFromFirebase;
-const xgAccesor = XGAccessor();
+const xgAccessor = XGAccessor();
 const stadiumFilter = {
     name: "Futsal (3v3 and 4v4)",
     stadiums: {
@@ -562,7 +823,7 @@ function renderMain(summaries) {
     const mainRe = (
         <LeaderboardMain
             summaries={summaries}
-            xgAccesor={xgAccesor}
+            xgAccessor={xgAccessor}
             stadiumFilter={stadiumFilter}
         />
     );
@@ -570,6 +831,9 @@ function renderMain(summaries) {
     ReactDOM.render(mainRe, mainEl);
 }
 
+if (isLocal) {
+    xgAccessor.start();
+}
 renderMain(null);
 fetchSummaries(fromTime, (val) => {
     if (val) {
@@ -580,7 +844,7 @@ fetchSummaries(fromTime, (val) => {
         });
         renderMain(summaries);
         summaries.forEach((s) => {
-            xgAccesor.request(s.id);
+            xgAccessor.request(s.id);
         });
     }
 });

@@ -47,6 +47,13 @@ function toRatio(num, den, digits=4) {
     }
 }
 
+function div(num, den, d=3) {
+    if (Math.abs(den) > 0) {
+        return (num / den).toFixed(d);
+    }
+    return (0).toFixed(d);
+}
+
 function plur(n, s, p) {
     const ps = p ? p : `${s}s`;
     return n === 1 ? `${n} ${s}` : `${n} ${ps}`;
@@ -326,9 +333,15 @@ function StatsTable(props) {
     }
     if (sortCol !== null) {
         displayRows = displayRows.sort((a, b) => {
+            // Return 1 if aVal should be further down the list.
             const aVal = maybeParseFloat(a[sortCol]);
             const bVal = maybeParseFloat(b[sortCol]);
-            if (sortAsc) {
+            // Put numerical values at the top of the list.
+            if (isNaN(aVal) && !isNaN(bVal)) {
+                return 1;
+            } else if (!isNaN(aVal) && isNaN(bVal)) {
+                return -1;
+            } else if (sortAsc) {
                 return aVal > bVal ? 1 : -1;
             } else {
                 return aVal < bVal ? 1 : -1;
@@ -352,27 +365,38 @@ function StatsTable(props) {
                     />
                 </span>
             </div>
-            <table>
-                <thead>
-                    {headers.map((col) => {
-                        const isSorted = col.key === sortCol;
-                        let arrow;
-                        if (isSorted) {
-                            arrow = (
-                                <span className="SortArrow">{sortAsc ? "▼" : "▲"}</span>
+            <div className="TableHolder">
+                <table>
+                    <thead>
+                        {headers.map((col) => {
+                            const isSorted = col.key === sortCol;
+                            let classNames = [];
+                            let arrow;
+                            if (isSorted) {
+                                classNames.push("Sorted");
+                                arrow = (
+                                    <span className="SortArrow">{sortAsc ? "▼" : "▲"}</span>
+                                );
+                            }
+                            let desc;
+                            if (col.desc) {
+                                classNames.push("HasDescription")
+                                desc = (
+                                    <span className="Description">{col.desc}</span>
+                                );
+                            }
+                            return (
+                                <th className={classNames.join(" ")} onClick={sortBy(col.key)}>
+                                    {col.name}{arrow}{desc}
+                                </th>
                             );
-                        }
-                        return (
-                            <th className={isSorted ? "Sorted" : ""} onClick={sortBy(col.key)}>
-                                {col.name}{arrow}
-                            </th>
-                        );
-                    })}
-                </thead>
-                <tbody>
-                    {displayRows.map(getRow)}
-                </tbody>
-            </table>
+                        })}
+                    </thead>
+                    <tbody>
+                        {displayRows.map(getRow)}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
