@@ -578,7 +578,12 @@ function tableRankedMatches(rankedMatches) {
         { key: "duration", name: "Duration" },
         { key: "winProb", name: "Win Prob", style: (r) => styleProb(r.winProb) },
         { key: "finalScore", name: "Final Score" },
-        { key: "eloDelta", name: "ΔELO", style: (r) => styleELO(r.eloMatch, 25, 175) },
+        {
+            key: "eloDelta",
+            name: "ΔELO",
+            desc: "Change in Player ELO Ratings from Match",
+            style: (r) => styleELO(r.eloMatch, 25, 175)
+        },
         { key: "teamRed", name: "Red Team", style: (r) => styleWinner(r.winner, "Red") },
         { key: "eloRatingRed", name: "ELO", style: (r) => styleELO(r.eloRed) },
         { key: "teamBlue", name: "Blue Team", style: (r) => styleWinner(r.winner, "Blue") },
@@ -616,9 +621,21 @@ function tableRankedMatchesWithXG(xgMatches) {
         const nOrigCols = matchTable.headers.length;
         const headers = [
             ...matchTable.headers.slice(0, nOrigCols - 2),
-            { key: "xgRed", name: "XG", style: (r) => styleProb(r.xgRedAlpha, TEAM_RGB.red) },
+            {
+                key: "xgRed",
+                name: "XG",
+                desc: "Red Team Expected Goals Scored",
+                style: (r) => styleProb(r.xgRedAlpha, TEAM_RGB.red)
+
+            },
             ...matchTable.headers.slice(nOrigCols - 2, nOrigCols),
-            { key: "xgBlue", name: "XG", style: (r) => styleProb(r.xgBlueAlpha, TEAM_RGB.blue) },
+            {
+                key: "xgBlue",
+                name: "XG",
+                desc: "Blue Team Expected Goals Scored",
+                style: (r) => styleProb(r.xgBlueAlpha, TEAM_RGB.blue)
+
+            },
         ];
         const rows = matchTable.rows.map((row) => {
             const hasXG = row.id in xgMatches;
@@ -803,10 +820,12 @@ function LeaderboardMain(props) {
     );
 }
 
-const HOUR_MS = 60 * 60 * 1000
+const HOUR_MS = 60 * 60 * 1000;
 const nowTime = isLocal ? new Date("1/17/2021 2:00 PM").getTime() : Date.now();
 const fromTime = nowTime - (6 * HOUR_MS);
 const fetchSummaries = isLocal ? fetchRecentSummariesFromLocal : fetchRecentSummariesFromFirebase;
+const url = document.location.href;
+const startExtended = getParam(url, "x");
 const xgAccessor = XGAccessor();
 const stadiumFilter = {
     name: "Futsal (3v3 and 4v4)",
@@ -831,7 +850,7 @@ function renderMain(summaries) {
     ReactDOM.render(mainRe, mainEl);
 }
 
-if (isLocal) {
+if (startExtended) {
     xgAccessor.start();
 }
 renderMain(null);

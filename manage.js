@@ -164,7 +164,7 @@ if (script === "elo") {
 }
 
 if (script === "leaderboard") {
-    const HOUR_MS = 60 * 60 * 1000
+    const HOUR_MS = 60 * 60 * 1000;
     const fromTime = Date.now() - (6 * HOUR_MS);
     let since = fromTime;
     let until = Date.now();
