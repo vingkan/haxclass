@@ -1,5 +1,15 @@
+const url = document.location.href;
 const isLocal = document.location.hostname === "localhost" && document.location.href.indexOf("l=false") == -1;
-const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuapp.com";
+const useLocalML = isLocal || getParam(url, "localml");
+const HAXML_SERVER = useLocalML ? "http://localhost:5000" : "https://haxml.herokuapp.com";
+const useRecent = getParam(url, "recent");
+let nRecent = 100;
+if (!isNaN(parseInt(useRecent))) {
+    nRecent = Math.max(parseInt(useRecent), 1);
+}
+console.log(`Fetching summaries from ${isLocal ? "mock data" : "Firebase"}.`);
+console.log(`Fetching predictions from ${useLocalML ? "local server" : "Heroku"}.`);
+console.log(`Fetching ranks for ${useRecent ? nRecent + " recent matches" : "current matches"}.`);
 
 const INITIAL_ELO = 1500;
 const PURPLE_RGB = `103,102,253`;
@@ -23,11 +33,34 @@ Chart.defaults.global.defaultFont = "Roboto";
 
 /* Data Fetchers */
 
+let RECENCY_MODE = "last 6 hours";
+
 function fetchRecentSummariesFromFirebase(since, callbackFn) {
     const summaryRef = db.ref("summary").orderByChild("saved").startAt(since);
-    summaryRef.on("value", (snap) => {
-        const val = snap.val();
-        callbackFn(val);
+    const staticRef = db.ref("summary").orderByChild("saved").limitToLast(nRecent);
+    summaryRef.once("value", (checkSnap) => {
+        const checkVal = checkSnap.val();
+        if (!checkVal || useRecent) {
+            // Falling back to static data.
+            staticRef.once("value", (staticSnap) => {
+                const staticVal = staticSnap.val();
+                RECENCY_MODE = `last ${nRecent} saved`;
+                callbackFn(staticVal);
+            });
+        } else {
+            RECENCY_MODE = "last 6 hours";
+            callbackFn(checkVal);
+        }
+        // Still listening for live data.
+        if (!useRecent) {
+            summaryRef.on("value", (snap) => {
+                const val = snap.val();
+                if (val) {
+                    RECENCY_MODE = "last 6 hours";
+                    callbackFn(val);   
+                }
+            });
+        }
     });
 }
 
@@ -42,8 +75,7 @@ function fetchRecentSummariesFromLocal(since, callbackFn) {
 
 function XGAccessor() {
     let isStarted = false;
-    let nRequested = 0;
-    let nCompleted = 0;
+    let progress = { requested: 0, completed: 0 };
     let matches = {};
     let requestedMatches = [];
     let progressCallback;
@@ -51,16 +83,16 @@ function XGAccessor() {
     const requestMatchXG = (mid) => {
         if (isStarted) {
             if (!(mid in matches)) {
-                nRequested++;
+                progress.requested++;
                 if (progressCallback) {
-                    progressCallback(nCompleted, nRequested);
+                    progressCallback(progress);
                 }
                 fetch(`${HAXML_SERVER}/xg/${mid}`).then(async (res) => {
                     const xgData = await res.json();
                     matches[mid] = xgData;
-                    nCompleted++;
+                    progress.completed++;
                     if (progressCallback) {
-                        progressCallback(nCompleted, nRequested);
+                        progressCallback(progress);
                     }
                     if (matchesCallback) {
                         matchesCallback(matches);
@@ -96,6 +128,9 @@ function XGAccessor() {
         request: (mid) => {
             requestMatchXG(mid);
         },
+        getProgress: () => {
+            return progress;
+        },
         getMatches: () => {
             return matches;
         },
@@ -106,7 +141,7 @@ function XGAccessor() {
             matchesCallback = callbackFn;
         },
         hasData: () => {
-            return nCompleted > 0;
+            return progress.completed > 0;
         }
     };
     return accessor;
@@ -686,6 +721,7 @@ class ELOChart extends React.Component {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 tooltips: {
                     mode: "index",
                     intersect: false,
@@ -746,9 +782,11 @@ class ELOChart extends React.Component {
         }
     }
     render() {
+        const nPlayers = this.props.rankedPlayers.length;
+        const height = nPlayers > 50 ? (400 + (3 * nPlayers)) : 400;
         return (
             <div className="ELOChart" ref={this.ref}>
-                <canvas></canvas>
+                <canvas height={height}></canvas>
                 <button className="Btn__Small ELOChart__Toggle">Show All</button>
             </div>
         );
@@ -756,21 +794,25 @@ class ELOChart extends React.Component {
 }
 
 function LeaderboardMain(props) {
-    const [ isLoading, setIsLoading ] = React.useState(false);
-    const [ xgProgress, setXGProgress ] = React.useState({ completed: 0, requested: 0 });
-    const [ xgData, setXGData ] = React.useState({});
-    const xgRequested = plur(xgProgress.requested, "match", "matches");
+    // Set component hooks.
     const eloParams = { k: 100, d: 400, mode: "binary", method: "average" };
-    const { rankedPlayers, rankedMatches}  = ranksFromSummaries(props.summaries, eloParams);
-    const { xgPlayers, xgMatches } = statsFromXG(xgData);
-    const nRankedMatches = plur(rankedMatches.length, "match", "matches");
     const xgAccessor = props.xgAccessor;
-    xgAccessor.onProgress((completed, requested) => {
-        setXGProgress({ completed, requested });
+    const [ isLoading, setIsLoading ] = React.useState(false);
+    const [ xgProgress, setXGProgress ] = React.useState(xgAccessor.getProgress());
+    const initialXGStats = statsFromXG(xgAccessor.getMatches());
+    const [ xgStats, setXGStats ] = React.useState(initialXGStats);
+    const { xgPlayers, xgMatches } = xgStats;
+    // Set XG data listeners.
+    xgAccessor.onProgress((progress) => {
+        setXGProgress(progress);
     });
     xgAccessor.onMatches((matches) => {
-        setXGData(matches);
+        setXGStats(statsFromXG(matches));
     });
+    // Compute data for view.
+    const { rankedPlayers, rankedMatches}  = ranksFromSummaries(props.summaries, eloParams);
+    const nRankedMatches = plur(rankedMatches.length, "match", "matches");
+    const xgRequested = plur(xgProgress.requested, "match", "matches");
     const tablePlayers = xgAccessor.hasData() ? tableRankedPlayersWithXG(xgPlayers) : tableRankedPlayers;
     const tableMatches = xgAccessor.hasData() ? tableRankedMatchesWithXG(xgMatches) : tableRankedMatches;
     return (
@@ -783,7 +825,7 @@ function LeaderboardMain(props) {
                 <p>
                     <span>Rankings based on <span className="Bold">{nRankedMatches}</span></span>
                     <span> of <span className="Bold">{props.stadiumFilter.name}</span></span>
-                    <span> over the <span className="Bold">last 6 hours</span>.</span>
+                    <span> over the <span className="Bold">{RECENCY_MODE}</span>.</span>
                 </p>
                 <h3>ELO Ratings Over Time</h3>
                 <ELOChart
@@ -824,7 +866,6 @@ const HOUR_MS = 60 * 60 * 1000;
 const nowTime = isLocal ? new Date("1/17/2021 2:00 PM").getTime() : Date.now();
 const fromTime = nowTime - (6 * HOUR_MS);
 const fetchSummaries = isLocal ? fetchRecentSummariesFromLocal : fetchRecentSummariesFromFirebase;
-const url = document.location.href;
 const startExtended = getParam(url, "x");
 const xgAccessor = XGAccessor();
 const stadiumFilter = {
