@@ -3,7 +3,7 @@ const isLocal = document.location.hostname === "localhost" && document.location.
 const useLocalML = isLocal || getParam(url, "localml");
 const HAXML_SERVER = useLocalML ? "http://localhost:5000" : "https://haxml.herokuapp.com";
 const useRecent = getParam(url, "recent");
-let nRecent = 100;
+let nRecent = 50;
 if (!isNaN(parseInt(useRecent))) {
     nRecent = Math.max(parseInt(useRecent), 1);
 }
