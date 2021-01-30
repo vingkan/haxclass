@@ -4,6 +4,7 @@
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
+    "viewStats": "View stats at: bit.ly/haxml-elo",
 
     "streamLive": true,
     "streamName": "zoro",
@@ -14,10 +15,10 @@
     "collectTrace": false,
 
     "scoreLimit": 3,
-    "timeLimit": 3,
+    "timeLimit": 4,
     "teamsLock": true,
     "customStadium": "NAFL Official Map v1",
 
-    "colorsRed": "/colors red 60 FFFFFF EB1F10 BA0000 821010",
-    "colorsBlue": "/colors blue 60 FFFFFF 0080FF 0064BA 005282"
+    "colorsRed": "/colors red 0 42182F A03A72 FFFFFF A03A72",
+    "colorsBlue": "/colors blue 90 407274 FFFFFF FFFFFF 407274"
 }

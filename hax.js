@@ -580,6 +580,9 @@ room.onTeamVictory = async function(score) {
     const allTimeKicks = kicks.map((k) => saveAllTimeKick(k, currentStadiumName));
     const message = await window.saveGameRecord(record, summary, allTimeKicks);
     room.sendAnnouncement(message);
+    if (CONFIG.viewStats) {
+        room.sendAnnouncement(CONFIG.viewStats);
+    }
     await streamData(db, currentStreamId, {
         type: EVENT_TYPE.Victory,
         scoreRed: finalScore.red,
