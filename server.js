@@ -41,6 +41,7 @@ const db = firebase.database();
 const STADIUMS = {
     "NAFL 1v1/2v2 Map v1": "nafl_12",
     "NAFL Official Map v1": "nafl_34",
+    "Happy Futsal 3x3 4x4": "nafl_34_happy",
 };
 
 const configFile = process.argv[2];

@@ -3,6 +3,8 @@
 const CONFIG = JSON.parse(window.RAW_CONFIG);
 const DEBUG_MODE = CONFIG.showDebugMessages;
 
+const NOTICE = "This server is collecting your nickname and gameplay data. We do not collect your chat logs.";
+
 const TEAMS = { 1: "Red", 2: "Blue", Red: 1, Blue: 2 };
 
 const KICK_TYPE = {
@@ -404,35 +406,43 @@ function getAssister(last, prev, team) {
 
 function startStream(room, db) {
     return new Promise((resolve, reject) => {
-        db.ref(`live/${CONFIG.streamName}`).push(true).then((snap) => {
-            const streamId = snap.key;
-            console.log(`Streaming to: live/${CONFIG.streamName}/${streamId}`);
-            room.sendAnnouncement("Started livestream.");
-            resolve(streamId);
-        }).catch((err) => {
-            console.log("Error starting stream:");
-            console.log(err);
-            room.sendAnnouncement("Error starting stream, check logs.");
+        if (!CONFIG.streamLive) {
             resolve(null);
-        });
+        } else {
+            db.ref(`live/${CONFIG.streamName}`).push(true).then((snap) => {
+                const streamId = snap.key;
+                console.log(`Streaming to: live/${CONFIG.streamName}/${streamId}`);
+                room.sendAnnouncement("Started livestream.");
+                resolve(streamId);
+            }).catch((err) => {
+                console.log("Error starting stream:");
+                console.log(err);
+                room.sendAnnouncement("Error starting stream, check logs.");
+                resolve(null);
+            });
+        }
     });
 }
 
 function streamData(db, streamId, data) {
     // console.log(`streamData(${db ? true : false}, ${streamId}, ${JSON.stringify(data, null, 2)})`);
     return new Promise((resolve, reject) => {
-        try {
-            db.ref(`live/${CONFIG.streamName}/${streamId}`).push(data).then(() => {
-                resolve();
-            }).catch((err) => {
-                console.log(`Firebase error pushing to stream: live/${CONFIG.streamName}/${streamId}`);
+        if (!CONFIG.streamLive) {
+            resolve();
+        } else {
+            try {
+                db.ref(`live/${CONFIG.streamName}/${streamId}`).push(data).then(() => {
+                    resolve();
+                }).catch((err) => {
+                    console.log(`Firebase error pushing to stream: live/${CONFIG.streamName}/${streamId}`);
+                    console.log(err);
+                    resolve();
+                });
+            } catch (err) {
+                console.log(`JS error pushing to stream: live/${CONFIG.streamName}/${streamId}`);
                 console.log(err);
                 resolve();
-            });
-        } catch (err) {
-            console.log(`JS error pushing to stream: live/${CONFIG.streamName}/${streamId}`);
-            console.log(err);
-            resolve();
+            }
         }
     });
 }
@@ -580,8 +590,10 @@ room.onTeamVictory = async function(score) {
     const allTimeKicks = kicks.map((k) => saveAllTimeKick(k, currentStadiumName));
     const message = await window.saveGameRecord(record, summary, allTimeKicks);
     room.sendAnnouncement(message);
-    if (CONFIG.viewStats) {
-        room.sendAnnouncement(CONFIG.viewStats);
+    if (CONFIG.postGameMessages) {
+        CONFIG.postGameMessages.forEach((msg) => {
+            room.sendAnnouncement(msg);
+        });
     }
     await streamData(db, currentStreamId, {
         type: EVENT_TYPE.Victory,
@@ -621,7 +633,14 @@ room.onStadiumChange = function(stadiumName, byPlayer) {
 room.onPlayerJoin = function(player) {
     maybePromoteAdmin(room);
     room.sendAnnouncement(`Welcome, ${player.name}.`);
-    room.sendAnnouncement("This server is collecting your nickname and gameplay data. We do not collect your chat logs.", targetId=player.id);
+    if (CONFIG.saveToFirebase || CONFIG.saveToLocal) {
+        room.sendAnnouncement(NOTICE, targetId=player.id);
+    }
+    if (CONFIG.welcomeMessages) {
+        CONFIG.welcomeMessages.forEach((msg) => {
+            room.sendAnnouncement(msg);
+        });
+    }
 }
 
 room.onPlayerLeave = function(player) {

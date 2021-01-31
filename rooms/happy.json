@@ -1,10 +1,11 @@
 {
-    "roomName": "Room of Zoro",
+    "roomName": "Happy Futsal (3v3, 4v4)",
     "maxPlayers": 12,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
     "welcomeMessages": [
+        "The map is identical to NAFL Futsal maps, but with grass background.",
         "View stats at: bit.ly/haxml-elo"
     ],
     "postGameMessages": [
@@ -12,7 +13,7 @@
     ],
 
     "streamLive": true,
-    "streamName": "zoro",
+    "streamName": "happy",
 
     "saveToFirebase": true,
     "saveToLocal": false,
@@ -22,8 +23,5 @@
     "scoreLimit": 3,
     "timeLimit": 4,
     "teamsLock": true,
-    "customStadium": "NAFL Official Map v1",
-
-    "colorsRed": "/colors red 0 42182F A03A72 FFFFFF A03A72",
-    "colorsBlue": "/colors blue 90 264445 FFFFFF FFFFFF 407274"
+    "customStadium": "Happy Futsal 3x3 4x4"
 }
