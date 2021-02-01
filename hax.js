@@ -487,6 +487,7 @@ let lastKickPlayer;
 let lastTouchPlayer;
 let lastTouchSource;
 let possessionStartTime;
+let lastClockTime;
 
 let lastPositionSaveTime;
 
@@ -535,6 +536,7 @@ room.onGameStart = async function(byPlayer) {
     lastTouchPlayer = null;
     lastTouchSource = null;
     possessionStartTime = 0;
+    lastClockTime = 0;
 
     // Start negative on first run to ensure initial positions are saved.
     lastPositionSaveTime = -1.05 * POSITION_SAVE_COOLDOWN;
@@ -715,6 +717,7 @@ room.onGameTick = function() {
     }
     const time = getTime(room);
     const delta = time - lastPositionSaveTime;
+    lastClockTime = time;
     // Save player positions
     const players = room.getPlayerList();
     const b = room.getBallPosition();
@@ -865,7 +868,7 @@ room.onTeamGoal = function(team) {
 }
 
 room.onPlayerChat = function(player, message) {
-    if (message.indexOf("$get_map_data") === 0) {
+    if (message.indexOf("!map") === 0) {
         const bounds = positions.reduce((agg, pos) => {
             agg.minX = Math.min(agg.minX, pos.x);
             agg.maxX = Math.max(agg.maxX, pos.x);
@@ -887,7 +890,23 @@ room.onPlayerChat = function(player, message) {
         room.sendAnnouncement(JSON.stringify(mapData), targetId=player.id);
         return false;
     }
-    if (message.indexOf("$team_top") === 0) {
+    if (message.indexOf("!p") === 0) {
+        const playerList = room.getPlayerList().filter((p) => {
+            if (message.indexOf("red") > -1) {
+                return p.team === TEAMS.Red;
+            } else if (message.indexOf("blue") > -1) {
+                return p.team === TEAMS.Blue;
+            } else if (message.indexOf("in") > -1) {
+                return p.team === TEAMS.Red || p.team === TEAMS.Blue;
+            } else if (message.indexOf("out") > -1) {
+                return p.team !== TEAMS.Red && p.team !== TEAMS.Blue;
+            }
+            return true;
+        }).map((p) => p.name).join(",");
+        room.sendAnnouncement(playerList, targetId=player.id);
+        return false;
+    }
+    if (message.indexOf("!top") === 0 && possessions) {
         // Total time of match, in seconds.
         let totalTOP = 0;
         // Total time of possession for each team, in seconds.
@@ -904,7 +923,7 @@ room.onPlayerChat = function(player, message) {
             ...possessions,
             {
                 start: possessionStartTime,
-                end: getTime(room),
+                end: lastClockTime,
                 player: lastTouchPlayer ? lastTouchPlayer.id : null,
                 team: lastTouchPlayer ? lastTouchPlayer.team : null,
             },
@@ -920,14 +939,18 @@ room.onPlayerChat = function(player, message) {
                 playerTOPMap[drive.team][drive.player] += dur;   
             }
         });
-        const redTOPPct = Math.round(100 * (teamTOPMap[TEAMS.Red] / totalTOP));
-        const blueTOPPct = Math.round(100 * (teamTOPMap[TEAMS.Blue] / totalTOP));
+        const redTOPPct = totalTOP > 0 ? Math.round(100 * (teamTOPMap[TEAMS.Red] / totalTOP)) : 0;
+        const blueTOPPct = totalTOP > 0 ? Math.round(100 * (teamTOPMap[TEAMS.Blue] / totalTOP)) : 0;
         const msg = [
             `Time of Possession:`,
             `Red: ${teamTOPMap[TEAMS.Red].toFixed(0)} secs (${redTOPPct}%)`,
             `Blue: ${teamTOPMap[TEAMS.Blue].toFixed(0)} secs (${blueTOPPct}%)`,
         ];
-        room.sendAnnouncement(msg.join("\n"), targetId=player.id);
+        if (message.indexOf("all") > -1) {
+            room.sendAnnouncement(msg.join("\n"));
+        } else {
+            room.sendAnnouncement(msg.join("\n"), targetId=player.id);
+        }
+        return false;
     }
-    return true;
 }
