@@ -593,9 +593,7 @@ room.onTeamVictory = async function(score) {
     const message = await window.saveGameRecord(record, summary, allTimeKicks);
     room.sendAnnouncement(message);
     if (CONFIG.postGameMessages) {
-        CONFIG.postGameMessages.forEach((msg) => {
-            room.sendAnnouncement(msg);
-        });
+        room.sendAnnouncement(CONFIG.postGameMessages.join("\n"));
     }
     await streamData(db, currentStreamId, {
         type: EVENT_TYPE.Victory,
@@ -639,9 +637,7 @@ room.onPlayerJoin = function(player) {
         room.sendAnnouncement(NOTICE, targetId=player.id);
     }
     if (CONFIG.welcomeMessages) {
-        CONFIG.welcomeMessages.forEach((msg) => {
-            room.sendAnnouncement(msg);
-        });
+        room.sendAnnouncement(CONFIG.welcomeMessages.join("\n"), targetId=player.id);
     }
 }
 
