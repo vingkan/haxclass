@@ -75,25 +75,17 @@ function fetchRecentSummariesFromLocal(since, callbackFn) {
 
 function XGAccessor() {
     let isStarted = false;
-    let progress = { requested: 0, completed: 0 };
     let matches = {};
-    let requestedMatches = [];
-    let progressCallback;
+    let requestedMatches = {};
+    let queuedMatches = [];
     let matchesCallback;
     const requestMatchXG = (mid) => {
         if (isStarted) {
             if (!(mid in matches)) {
-                progress.requested++;
-                if (progressCallback) {
-                    progressCallback(progress);
-                }
+                requestedMatches[mid] = true;
                 fetch(`${HAXML_SERVER}/xg/${mid}`).then(async (res) => {
                     const xgData = await res.json();
                     matches[mid] = xgData;
-                    progress.completed++;
-                    if (progressCallback) {
-                        progressCallback(progress);
-                    }
                     if (matchesCallback) {
                         matchesCallback(matches);
                     }
@@ -106,19 +98,19 @@ function XGAccessor() {
                 });
             }
         } else {
-            requestedMatches.push(mid);
+            queuedMatches.push(mid);
         }
     };
     let accessor = {
         start: () => {
             if (!isStarted) {
+                isStarted = true;
                 fetch(`${HAXML_SERVER}/hello`).then(async (done) => {
                     const res = await done.text();
-                    isStarted = true;
-                    requestedMatches.forEach((mid) => {
+                    queuedMatches.forEach((mid) => {
                         requestMatchXG(mid);
                     });
-                    requestedMatches = [];
+                    queuedMatches = [];
                 }).catch((err) => {
                     console.log("Error connecting to HaxML server:");
                     console.error(err);
@@ -129,19 +121,24 @@ function XGAccessor() {
             requestMatchXG(mid);
         },
         getProgress: () => {
-            return progress;
+            return {
+                requested: Object.keys(requestedMatches).length,
+                completed: Object.keys(matches).length
+            };
         },
         getMatches: () => {
             return matches;
-        },
-        onProgress: (callbackFn) => {
-            progressCallback = callbackFn;
         },
         onMatches: (callbackFn) => {
             matchesCallback = callbackFn;
         },
         hasData: () => {
-            return progress.completed > 0;
+            for (let mid in matches) {
+                if (matches.hasOwnProperty(mid)) {
+                    return true;
+                }
+            }
+            return JSON.stringify(matches) !== JSON.stringify({});
         }
     };
     return accessor;
@@ -803,10 +800,8 @@ function LeaderboardMain(props) {
     const [ xgStats, setXGStats ] = React.useState(initialXGStats);
     const { xgPlayers, xgMatches } = xgStats;
     // Set XG data listeners.
-    xgAccessor.onProgress((progress) => {
-        setXGProgress(progress);
-    });
     xgAccessor.onMatches((matches) => {
+        setXGProgress(xgAccessor.getProgress());
         setXGStats(statsFromXG(matches));
     });
     // Compute data for view.
