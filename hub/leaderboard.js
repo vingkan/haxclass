@@ -850,12 +850,16 @@ function LeaderboardMain(props) {
                     table={tablePlayers(rankedPlayers)}
                     title={"Ranked Players"}
                     isSearchable={true}
+                    hasMultiTermSearch={true}
+                    searchWidth={400}
                 />
                 <br />
                 <StatsTable
                     table={tableMatches(rankedMatches)}
                     title={"Ranked Matches"}
                     isSearchable={true}
+                    hasMultiTermSearch={true}
+                    searchWidth={400}
                 />
             </section>
         </div>

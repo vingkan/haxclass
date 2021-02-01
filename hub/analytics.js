@@ -324,11 +324,27 @@ function StatsTable(props) {
     };
     let displayRows = [ ...rows ];
     if (search.length > 0) {
+        const terms = search.toLowerCase().split(",").map((l) => l.trim()).filter((l) => l.length > 0);
+        const isSingleTermMatch = (rowText) => {
+            return rowText.indexOf(search) > -1;
+        };
+        const isMultiTermMatch = (rowText) => {
+            for (let j = 0; j < terms.length; j++) {
+                if (rowText.indexOf(terms[j]) > -1) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        let isMatch = isSingleTermMatch;
+        if (props.hasMultiTermSearch) {
+            isMatch = isMultiTermMatch;
+        }
         displayRows = displayRows.filter((p) => {
             const rowText = headers.map((col) => {
                 return p[col.key];
-            }).join(" ").toLowerCase();
-            return rowText.indexOf(search) > -1;
+            }).join(" ").toLowerCase().trim();
+            return isMatch(rowText);
         });
     }
     if (sortCol !== null) {
@@ -361,7 +377,10 @@ function StatsTable(props) {
                             const value = e.target.value.toLowerCase();
                             setSearch(value);
                         }}
-                        style={{display: props.isSearchable ? "inline-block" : "none"}}
+                        style={{
+                            display: props.isSearchable ? "inline-block" : "none",
+                            width: props.searchWidth || "auto",
+                        }}
                     />
                 </span>
             </div>
