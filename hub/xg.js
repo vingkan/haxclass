@@ -273,6 +273,32 @@ class XGMain extends React.Component {
     }
 }
 
+// Since we use the Heroku free tier, it takes some time for the HaxML server to wake up.
+// We can cache some match responses with XG for specific pairs of match ID and model ID
+// so that those predictions will load more quickly, while the server wakes up.
+// Note: Model ID must be specified in the URL parameters to look up the cached prediction,
+// since null model ID falls back to the default model and we should be able to change the
+// default model may change on the server side without updating this mapping for null keys.
+const demoMatches = {
+    "-MQsAFNKGdFPM9tTfFgv": {
+        "edwin_rf_12": "../mock/xg_edwin_rf_12_-MQsAFNKGdFPM9tTfFgv.json"
+    }
+};
+
+function fetchMatchXG(matchID, clf) {
+    if (clf) {
+        if (matchID in demoMatches) {
+            if (clf in demoMatches[matchID]) {
+                const path = demoMatches[matchID][clf];
+                console.log("Fetch match from cache.");
+                return fetch(path);
+            }
+        }
+    }
+    console.log("Fetch match from HaxML server.");
+    return fetch(`${HAXML_SERVER}/xg/${matchID}${clf ? `?clf=${clf}` : ""}`);
+}
+
 const url = document.location.href;
 let matchID = getParam(url, "m");
 let clf = getParam(url, "clf");
@@ -300,7 +326,7 @@ function loadMatchXG(mid, model) {
     matchID = mid;
     clf = model;
     if (matchID) {
-        fetch(`${HAXML_SERVER}/xg/${matchID}${clf ? `?clf=${clf}` : ""}`).then(async (res) => {
+        fetchMatchXG(matchID, clf).then(async (res) => {
             const data = await res.json();
             if (data.success) {
                 clf = data.model_name;
