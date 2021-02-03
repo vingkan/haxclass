@@ -871,9 +871,11 @@ const stadiumFilter = {
     name: "Futsal (3v3 and 4v4)",
     stadiums: {
         "NAFL Official Map v1": true,
+        "Futsal 3x3 4x4 from HaxMaps": true,
+        "Futsalx3 | TK&ED": true,
+        "Futsal x3 by Bazinga from HaxMaps": true,
         "FUTHAX 4v4": true,
-        "Futsal x3": true,
-        "WFL - 4v4": true,
+        "Happy Futsal 3x3 4x4": true,
     }
 };
 
