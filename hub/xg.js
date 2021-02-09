@@ -1,3 +1,4 @@
+const url = document.location.href;
 const isLocal = document.location.hostname === "localhost" && document.location.href.indexOf("l=false") == -1;
 const useLocalML = isLocal || getParam(url, "localml");
 const HAXML_SERVER = useLocalML ? "http://localhost:5000" : "https://haxml.herokuapp.com";
@@ -284,6 +285,9 @@ class XGMain extends React.Component {
 const demoMatches = {
     "-MQsAFNKGdFPM9tTfFgv": {
         "edwin_rf_12": "../mock/xg_edwin_rf_12_-MQsAFNKGdFPM9tTfFgv.json"
+    },
+    "-MQsAFNKGdFPM9tTfFgv": {
+        "lynn_rf_weighted": "../mock/xg_lynn_rf_weighted_-MQsAFNKGdFPM9tTfFgv.json"
     }
 };
 
@@ -301,7 +305,6 @@ function fetchMatchXG(matchID, clf) {
     return fetch(`${HAXML_SERVER}/xg/${matchID}${clf ? `?clf=${clf}` : ""}`);
 }
 
-const url = document.location.href;
 let matchID = getParam(url, "m");
 let clf = getParam(url, "clf");
 let timeToShow = getParam(url, "t") || null;
@@ -330,6 +333,7 @@ function loadMatchXG(mid, model) {
     if (matchID) {
         fetchMatchXG(matchID, clf).then(async (res) => {
             const data = await res.json();
+            // console.log(JSON.stringify(data));
             if (data.success) {
                 clf = data.model_name;
                 renderMain(data, allStadiums);    
