@@ -1,5 +1,7 @@
 const isLocal = document.location.hostname === "localhost" && document.location.href.indexOf("l=false") == -1;
-const HAXML_SERVER = isLocal ? "http://localhost:5000" : "https://haxml.herokuapp.com";
+const useLocalML = isLocal || getParam(url, "localml");
+const HAXML_SERVER = useLocalML ? "http://localhost:5000" : "https://haxml.herokuapp.com";
+console.log(`Fetching predictions from ${useLocalML ? "local server" : "Heroku"}.`);
 
 function styleTeamCell(k) {
     return {
