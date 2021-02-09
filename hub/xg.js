@@ -286,8 +286,8 @@ const demoMatches = {
     "-MQsAFNKGdFPM9tTfFgv": {
         "edwin_rf_12": "../mock/xg_edwin_rf_12_-MQsAFNKGdFPM9tTfFgv.json"
     },
-    "-MQsAFNKGdFPM9tTfFgv": {
-        "lynn_rf_weighted": "../mock/xg_lynn_rf_weighted_-MQsAFNKGdFPM9tTfFgv.json"
+    "-MPezK7EDe-dIZ-8tMzT": {
+        "lynn_rf_weighted": "../mock/xg_lynn_rf_weighted_-MPezK7EDe-dIZ-8tMzT.json"
     }
 };
 
