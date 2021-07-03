@@ -1,9 +1,10 @@
 {
-    "roomName": "Zoros Futsal 3v3 4v4",
+    "roomName": "Scarlet Data Studio",
     "maxPlayers": 12,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
+    "password": "hawks",
     "welcomeMessages": [
         "View stats at: bit.ly/haxml-elo"
     ],
@@ -12,7 +13,7 @@
     ],
 
     "streamLive": true,
-    "streamName": "zoro",
+    "streamName": "sds",
 
     "saveToFirebase": true,
     "saveToLocal": false,
