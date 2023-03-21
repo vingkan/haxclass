@@ -1,6 +1,6 @@
 {
-    "roomName": "Newnas",
-    "maxPlayers": 12,
+    "roomName": "Nuna",
+    "maxPlayers": 20,
     "playerName": "HaxBot",
     "noPlayer": true,
     "public": true,
@@ -21,10 +21,10 @@
     "collectTrace": false,
 
     "scoreLimit": 3,
-    "timeLimit": 4,
+    "timeLimit": 3,
     "teamsLock": true,
     "customStadium": "NAFL Official Map v1",
 
-    "colorsRed": "/colors red 0 42182F A03A72 FFFFFF A03A72",
-    "colorsBlue": "/colors blue 90 264445 FFFFFF FFFFFF 407274"
+    "colorsRed": "/colors red 0 000000 FA6B45 FCDED9 FA6B45",
+    "colorsBlue": "/colors blue -30 ffbf00 082442 00A3A8 082442"
 }
